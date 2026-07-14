@@ -105,12 +105,12 @@
 - [ADR-045 — The Parameterization-Collapse Procedure and Tangle-Kind Classification: Sequencing the Recurrent Immune Tangle as an Effort DAG](#adr-045-the-parameterization-collapse-procedure-and-tangle-kind-classification-sequencing-the-recurrent-immune-tangle-as-an-effort-dag)
 - [ADR-046 — The Diff-Native Fingerprint Modality: Match a Structural DELTA, Not a Snapshot (detect / classify / label)](#adr-046-the-diff-native-fingerprint-modality-match-a-structural-delta-not-a-snapshot-detect--classify--label)
 - [ADR-047 — GATE-G Soundness: The Near-Miss Non-Vacuity Predicate](#adr-047-gate-g-soundness-the-near-miss-non-vacuity-predicate--a-promotion-requires-one-corpus-item-one-constraint-from-binding-spared-by-failing-exactly-that-one) *(Ratified 2026-06-10; amended by Amendments 1–3)*
-  - [ADR-047 Amendment 3 — the closed-alphabet soundness boundary](#adr-047-amendment-3-2026-06-17-drafted-on-the-v06-pioneers-build-step-zero--gate-gs-spare-clean-certificate-is-sound-only-over-a-closed-constraint-alphabet-opening-the-alphabet-routes-to-the-human-oracle-not-the-gate) *(DRAFT — v06; Survey certifies)*
+  - [ADR-047 Amendment 3 — the closed-alphabet soundness boundary](#adr-047-amendment-3-2026-06-17--gate-gs-spare-clean-certificate-is-sound-only-over-a-closed-constraint-alphabet-opening-the-alphabet-routes-to-the-human-oracle-not-the-gate) *(DRAFT — v06; Survey certifies)*
 - [ADR-048 — The Promoted-Draft Newtype](#adr-048-the-promoted-draft-newtype-make-only-bs-output-is-assertable-type-enforced-not-doc-convention) *(Ratified 2026-06-10)*
 - [ADR-049 — No Caller Emits Un-Scored Output: The Affinity-Score Invariant](#adr-049-no-caller-emits-un-scored-output-the-affinity-score-invariant--the-goodhart-asymmetric-ratification-lever) *(Ratified 2026-06-10)*
 - [ADR-050 — The `incident=` Key + the Signal-2 Routing Rule](#adr-050-the-incident-key--the-signal-2-routing-rule-an-incident-less-cluster-is-capped-at-suspected-principled-caution-not-a-gap) *(Ratified 2026-06-10)*
 - [ADR-051 — The Co-Native Ratification Record](#adr-051-the-co-native-ratification-record-one-record-two-renderings--specimen-triple--acceptrejectnarrow--fate) *(Ratified 2026-06-10 — UNIMPLEMENTED; impl is the v0.6 build; amended by Amendment 1)*
-  - [ADR-051 Amendment 1 — the is_discriminating recursive-descent precondition is satisfied (standing invariant)](#adr-051-amendment-1-2026-06-17-drafted-on-the-v06-pioneers-build-step-zero--the-narrowpersistedspecimen-re-mint-precondition-is_discriminating-recurses-into-combinator-children-is-satisfied-this-amendment-records-the-satisfaction-and-locks-it-as-a-standing-invariant) *(DRAFT — v06; Survey certifies)*
+  - [ADR-051 Amendment 1 — the is_discriminating recursive-descent precondition is satisfied (standing invariant)](#adr-051-amendment-1-2026-06-17--the-narrowpersistedspecimen-re-mint-precondition-is_discriminating-recurses-into-combinator-children-is-satisfied-this-amendment-records-the-satisfaction-and-locks-it-as-a-standing-invariant) *(DRAFT — v06; Survey certifies)*
 - [ADR-052 — The Affinity-Score Is the Spine](#adr-052-the-affinity-score-is-the-spine-every-learning-core-caller-emits-scored-output) *(Ratified 2026-06-10)*
 - [ADR-053 — The Tolerance-Quadrant Grid](#adr-053-the-tolerance-quadrant-grid-the-safety-dual-is-a-structurally-required-set-not-a-wishlist) *(Ratified 2026-06-10)*
 - [ADR-054 — The Two-Signal Gate: Signal-2 (Danger) as the Shared Afferent](#adr-054-the-two-signal-gate-the-innate-arm--signal-2-danger-as-the-shared-afferent) *(Ratified 2026-06-10)*
@@ -515,7 +515,7 @@ This amendment's compose-vs-compete posture is **biology-predicted at the outcom
 
 ### Resolves
 
-- The "default compose" clamping artifact (per a maintainer lock 2026-05-21)
+- The "default compose" clamping artifact (surfaced 2026-05-21)
 - The hand-wavy biology framing: Class-1 outcome-level grounding replaces "competition + cooperation coexist" generic claim
 - The compose-default that fragmented supply-chain adopter experience (per ADR-025 compete decision)
 
@@ -717,9 +717,9 @@ analog.
 
 ### Finding
 
-ADR-003 ratifies the biological metaphor as load-bearing for two roles: (1) teaching tool and (2) architectural-insight predictor. What the original text does NOT surface explicitly — and what the maintainer lock makes clear — is a third role: **discovery framework for stdlib growth**.
+ADR-003 ratifies the biological metaphor as load-bearing for two roles: (1) teaching tool and (2) architectural-insight predictor. What the original text does NOT surface explicitly is a third role: **discovery framework for stdlib growth**.
 
-The a maintainer lock (2026-05-21): "Each unused biological component is a research prompt. Mucosal immunity → input boundary defenses. MHC presentation → scope/visibility of declaration. Complement cascade → compound multi-step defenses. We've used ~10% of the metaphor. Each remaining component is a research arc."
+The insight (2026-05-21): "Each unused biological component is a research prompt. Mucosal immunity → input boundary defenses. MHC presentation → scope/visibility of declaration. Complement cascade → compound multi-step defenses. We've used ~10% of the metaphor. Each remaining component is a research arc."
 
 ### Decision
 
@@ -5170,13 +5170,11 @@ a naive question) but converge on the same root: ADR-027 §Decision
 specifies WHAT the mucosal primitives are without specifying HOW their
 argument shape, variant inclusion, and audit logic resolve at impl time.
 This amendment closes the gaps to unblock implementation. Filed as instance
-(v) of held-implementation-spec-depth-gap pattern; absorbed into
-`docs/process.md` §Standing Adversarial Checklist.
+(v) of held-implementation-spec-depth-gap pattern.
 
 **Related**: ADR-001 Amendment 1 C6 (sealed enum amendment process);
 ADR-003 Amendment 1 (biology grounding); ADR-016 (tolerance discipline);
-ADR-019 (substrate-witness); ADR-028 (antigen-category);
-`docs/process.md` §Standing Adversarial Checklist (sibling workstream).
+ADR-019 (substrate-witness); ADR-028 (antigen-category).
 
 ### Change 1 — MucosalKind inclusion-discipline named
 
@@ -6464,8 +6462,7 @@ assignment for the eighth entry, `#[titer]`, and judged it belongs in
 clinical-medicine, not immunology-proper.
 
 **Related**: ADR-003 (biology metaphor); ADR-024 §Biology grounding
-(parent dual-axis honesty refinement);
-`docs/process.md` §Amendment-vs-fixup taxonomy.
+(parent dual-axis honesty refinement).
 
 ### Finding
 
@@ -9387,7 +9384,7 @@ parallel build front must touch. Three problems compound:
    **purity invariant** (each detector/pass is a pure-ish function of its input; no detector
    self-coordinates or controls the run), which is what makes an out-of-band governor *insertable later*.
 
-The maintainer locked the *requirement* — "the orchestration layer MUST be a genuine out-of-band coordinator
+The design requirement — "the orchestration layer MUST be a genuine out-of-band coordinator
 capable of hosting a future kill-switch above the detector loop, never inside a detector it must be able
 to stop" — and the requirement was to confirm it is genuinely near-free in the real decomposition, or
 surface it as a finding. **Verdict: the REQUIREMENT survives (sound control theory); the MECHANISM as
@@ -10121,7 +10118,7 @@ physically-split stream defeats the seam's whole purpose (one subscribable signa
   permissive (decision-(a)), the dial carries the work the old gate's crisp-test did — as a **provenance
   tier** stating *how we know this failure-class exists at all*. The ladder has a **VERIFIED CORE** and two
   unverified tiers beneath it:
-  - **VERIFIED CORE (Goodhart-safe — the crew's Form-3, honored):**
+  - **VERIFIED CORE (Goodhart-safe):**
     - **encountered** (seen in real code — highest provenance), and
     - **constructable** (a minimal case can be *built that verifiably exhibits* the failure — wild-found is
       NOT required; a constructed-and-verified demo suffices). Both count as "shown"; this IS the
@@ -10962,7 +10959,7 @@ What this ADR proves, scoped, with its soundness boundary:
 
 ### Finding
 
-**22% of all crew entries across six roles in the Cartographers wave (28 of 127 text entries) independently touched one discipline:** every component that emits a verdict or generates a candidate must report what it ACTUALLY proved — scoped to its real reach, with its own soundness boundary — never the potential-maximum its category could theoretically provide.
+**22% of all independent design-review entries (28 of 127 text entries) across six review lenses independently touched one discipline:** every component that emits a verdict or generates a candidate must report what it ACTUALLY proved — scoped to its real reach, with its own soundness boundary — never the potential-maximum its category could theoretically provide.
 
 The invariant recurred on five distinct surfaces before convergence was recognized:
 1. The shipped confidence dial (ADR-039): honest-labels detection confidence (suspected vs named). One instance already in production.
@@ -11034,7 +11031,7 @@ The boundary between the halves is exactly the syntactic/semantic line = the dec
 
 ### Finding
 
-The v04 Cartographers wave surfaced a recurring structural pattern across multiple independent lines of analysis (observation, cross-domain analogy, design exploration, research review, and value analysis): the ROADMAP's 9-charter dependency DAG maps N organ-charters to N build units, but the biology it models is a recurrent tangle — not a pipeline. When these lines independently collapsed the expanded charter-space, they converged on approximately 5 deep primitives, each of which collapses several charters into one parameterized mechanism.
+Multiple independent lines of analysis (observation, cross-domain analogy, design exploration, research review, and value analysis) surfaced a recurring structural pattern: the ROADMAP's 9-charter dependency DAG maps N organ-charters to N build units, but the biology it models is a recurrent tangle — not a pipeline. When these lines independently collapsed the expanded charter-space, they converged on approximately 5 deep primitives, each of which collapses several charters into one parameterized mechanism.
 
 The collapse is not a simplification — it is a recognition (ADR-006). The 9-charter DAG was a legibility projection; the primitive-tangle is the underlying truth. Building 9 separate organs where the substrate is ONE parameterized mechanism would be antigen's own `ParallelStateTrackersDiverge` at the architecture level.
 
@@ -11046,7 +11043,7 @@ Mislabeling a safety-tangle as architecture ships autoimmunity. Mislabeling an a
 
 ### Decision
 
-**The Outfitters procedure for every `could-combine-with` edge (the f(p) test):** ask "can you write the N organs as `f(p)` — one operation `f`, N values of one parameter `p`?" The test is falsifiable and must be able to answer NO (a discriminator that cannot say no is not a discriminator).
+**The collapse procedure for every `could-combine-with` edge (the f(p) test):** ask "can you write the N organs as `f(p)` — one operation `f`, N values of one parameter `p`?" The test is falsifiable and must be able to answer NO (a discriminator that cannot say no is not a discriminator).
 
 - **YES → parameterization collapse.** Build `f` once; name the parameter. Then classify the tangle-kind (safety vs architecture) and sequence accordingly.
 - **NO, genuinely different operations → keep separate.** The `could-combine` is a real edge — the organs share substrate or interact — but they are not one parameterized mechanism.
@@ -11087,7 +11084,7 @@ Parameter: the render/transport (CLI / flycheck-diagnostic / MCP-per-fragment / 
 Tangle-kind: ARCHITECTURE. Build the spine once; the renders are near-free follow-ons.
 **Sequence FIRST** (highest present-adoption worth; the collapsed form of the most value — see ADR-043).
 
-**The tangle-design locked here, the effort-DAG the Pioneers sequence:**
+**The tangle-design locked here, the effort-DAG for implementation sequencing:**
 The five primitives compose into a recurrent cycle (not a pipeline — the textbook-pipeline immune system is the pedagogical lie; the real one is recurrent). The build-sequence is the effort-DAG over the recurrent design:
 1. **E (catalog-match spine)** — shipped substrate, highest adoption worth, four near-free renders. Sequence FIRST.
 2. **A (convergence field, one-tree scope)** + **C (PROPOSE, acute n=1 first)** — both ride the shipped `cluster_key`; the falsification gate (produce one real draft fingerprint on antigen's own marks).
@@ -11099,9 +11096,9 @@ The five primitives compose into a recurrent cycle (not a pipeline — the textb
 
 What this ADR proves: the five-primitive collapse is a RECOGNITION — the team verified that each proposed collapse passes the f(p) test (one operation, N parameter values) and that the refusals (cluster ≠ synthesize ≠ select; diversify ≠ select) are real, not forced. The safety/architecture tangle-kind classifications are verified against the known failure mode (autoimmunity = ungoverned generator without selector) for the one identified safety-tangle.
 
-What this ADR does NOT prove: that the build-sequence is optimal (it is a reasoned ordering, not a proof of minimal rework); that no new safety-tangles will be identified as implementation proceeds; that Primitive D's algorithm is tractable on antigen's specific grammar. These are open and will surface during the Pioneers wave.
+What this ADR does NOT prove: that the build-sequence is optimal (it is a reasoned ordering, not a proof of minimal rework); that no new safety-tangles will be identified as implementation proceeds; that Primitive D's algorithm is tractable on antigen's specific grammar. These are open and will surface during implementation.
 
-The ratifier: the Pioneers and Survey waves. If the build reveals that a proposed architecture-tangle was actually a safety-tangle (or vice versa), the Pioneers deviate and flag; the Survey adjudicates. This ADR is the design lock, not the build guarantee.
+The ratifier: the implementation and survey review. If the build reveals that a proposed architecture-tangle was actually a safety-tangle (or vice versa), the implementer deviates and flags; the survey review adjudicates. This ADR is the design lock, not the build guarantee.
 
 ### Mechanics
 
@@ -11112,7 +11109,7 @@ The ratifier: the Pioneers and Survey waves. If the build reveals that a propose
 
 ### Consequences
 
-- The ROADMAP's 9-charter DAG remains the legibility projection for design exploration and charter-readers. This ADR does not update the ROADMAP; it provides the collapsed-primitive model the Pioneers build from. The two representations coexist: the charter-DAG (design-legible, rich) and the primitive-tangle (builder-legible, collapsed).
+- The ROADMAP's 9-charter DAG remains the legibility projection for design exploration. This ADR does not update the ROADMAP; it provides the collapsed-primitive model for implementation. The two representations coexist: the charter-DAG (design-legible, rich) and the primitive-tangle (builder-legible, collapsed).
 - The do-later/deep-future charter sequence is: E first → A+C (one-tree scope) → B (co-ship with C) → A (fleet-scope) → D (research-probe first).
 - Primitive D's research-undefined status is load-bearing. Any ADR that locks a Primitive-D design without first probing and ratifying a tractable algorithm would be claiming more than is proven (ADR-044 violation applied to antigen's own roadmap).
 
@@ -11214,7 +11211,7 @@ ADR-045 step 2 reads "A (convergence field, one-tree) + C (PROPOSE, acute n=1) �
 
 - No PROPOSE (Primitive C) build ships before P0a + P0b land (the falsification gate is faith-based without them).
 - No dread-sentinel (route-arm) wires on `cluster_key` until P0a lands (the one ship-autoimmunity risk in the do-now arc).
-- The briefing-for-pioneers carries this corrected sequence — NOT ADR-045's pre-amendment "ride the shipped cluster_key" text.
+- The implementation briefing carries this corrected sequence — NOT ADR-045's pre-amendment "ride the shipped cluster_key" text.
 
 ---
 
@@ -11331,7 +11328,7 @@ Antigen's fingerprint model is a SNAPSHOT predicate: it matches the structure of
 
 ---
 
-<!-- ADR-047..056 transcribed from the v0.5 ratified drafts into the tracked canon as v0.6 Pioneers build-step-zero (2026-06-18). Faithful transcription; the ratification ritual (process.md:257-258) completing the v0.5 seal. Header levels demoted h1->h2 to match canon; "targets 0.5-dev" status framing preserved verbatim as the ratification provenance. -->
+<!-- ADR-047..056 transcribed from the v0.5 ratified drafts into the tracked canon (2026-06-18). Faithful transcription completing the v0.5 seal. Header levels demoted h1->h2 to match canon; "targets 0.5-dev" status framing preserved verbatim as the ratification provenance. -->
 
 ## [ADR-047] GATE-G Soundness: The Near-Miss Non-Vacuity Predicate — a Promotion Requires One Corpus Item One Constraint From Binding, Spared by Failing Exactly That One
 
@@ -11470,7 +11467,7 @@ A near-miss item matches **all-but-one** of the draft's top-level conjuncts and 
   - **ATK-047-N4** `single_conjunct_draft_is_not_near_miss_via_empty_drop` — a single-conjunct draft (e.g. a `narrow()`-minted `[body_calls("unwrap")]` that passes (A)-binary) is NOT near-miss-witnessable: the `len >= 2` guard prevents the empty-drop, so it returns `NotCorpusWitnessable` rather than vacuously near-miss-matching every non-binding item. (The RAN adversarial hole — the empty-`all_of` vacuity that `matcher.rs:88` would otherwise reopen; (A)-binary does NOT subsume it.)
   - **Positive control** `near_miss_promotes_the_good_drop_family` — the canonical `{unwrap, expect}` family + `CleanGuard` → promotes (`Witnessed`); the happy path stays green.
   - **P1 co-requisite** `non_degeneracy_guard_refuses_bare_structural_draft` — `all_of([impl, impl_of_trait("Drop")])` refused by **C's** non-degeneracy guard before B sees it. (Lives with the generator; named here as the co-requisite the near-miss gate depends on.)
-  These encode the spec BEFORE any code is written; may be `#[ignore]`'d pending implementation but the bodies are the spec. **The born-red set IS the definition of done for the build wave.**
+  These encode the spec BEFORE any code is written; may be `#[ignore]`'d pending implementation but the bodies are the spec. **The born-red set IS the definition of done for the implementation.**
 
 ### §Standing invariant — (A) is BINARY, FOREVER; it must NEVER become a tunable threshold (the line that stops P1 decaying into P2)
 
@@ -11514,9 +11511,9 @@ This is a **standing invariant on the gate, not a one-time design note** (mainta
 
 ---
 
-## Amendment 1 (2026-06-11, self-ratified during the Pioneers build wave) — producer-normalization of a single top-level `AllOf` wrapper closes the shape-fragility seam
+## Amendment 1 (2026-06-11, self-ratified 2026-06-11) — producer-normalization of a single top-level `AllOf` wrapper closes the shape-fragility seam
 
-**Status**: RATIFIED (build-wave self-ratify; supersede-not-erase — the original §Mechanics "top-level conjuncts only" decision is PRESERVED above and REFINED here, not replaced).
+**Status**: RATIFIED (supersede-not-erase — the original §Mechanics "top-level conjuncts only" decision is PRESERVED above and REFINED here, not replaced).
 
 **What the original locked**: the near-miss predicate + (A)-binary read the draft's **top-level** `constraints` slice (§Mechanics 1/2), with nested `any_of`/`all_of` deferred to OQ2 ("a future generator emitting a nested `any_of` would want a recursive drop").
 
@@ -11693,7 +11690,7 @@ This is **recognition, not new build** (ADR-006): the boundary already exists (t
 
 ## [ADR-049] No Caller Emits Un-Scored Output: The Affinity-Score Invariant + the Goodhart-Asymmetric Ratification Lever
 
-**Status**: Draft 2026-06-10 (v05 Outfitters/converge wave; targets `0.5-dev`). An **enforcement** ADR (not a design ADR — it enforces that the *existing* `Provenance` ordinal is correctly populated by every learning-core caller), the do-now invariant of the affinity-score-is-the-spine frame (ADR-052). **RATIFIED 2026-06-10** (maintainer seal-gate; the score = the existing `Provenance` ordinal type-carried on `PromotedDraft`, so un-scored output is type-impossible; staged lifecycle + consistency-audit). **Depends on ADR-052 (ratified)** (which ratifies "the score IS the existing `Provenance`/dial ordinal" — this ADR's invariant is vacuous until that score-as-axis is ratified) and **co-shipping with ADR-048** (the `PromotedDraft` newtype is the tier-CARRIER that makes this invariant type-enforceable).
+**Status**: Draft 2026-06-10 (targets `0.5-dev`). An **enforcement** ADR (not a design ADR — it enforces that the *existing* `Provenance` ordinal is correctly populated by every learning-core caller), the do-now invariant of the affinity-score-is-the-spine frame (ADR-052). **RATIFIED 2026-06-10** (the score = the existing `Provenance` ordinal type-carried on `PromotedDraft`, so un-scored output is type-impossible; staged lifecycle + consistency-audit). **Depends on ADR-052 (ratified)** (which ratifies "the score IS the existing `Provenance`/dial ordinal" — this ADR's invariant is vacuous until that score-as-axis is ratified) and **co-shipping with ADR-048** (the `PromotedDraft` newtype is the tier-CARRIER that makes this invariant type-enforceable).
 
 **Developed through**: ADR drafting, value analysis (the affinity-score-as-policy-lever), first-principles deconstruction (the 048/049/050 unification — the score lives ON the `PromotedDraft`), peer review (the three-required-claims scope + the Goodhart-asymmetric lever), and the maintainer's Tension-1 resolution (one field, two readings).
 
@@ -11788,7 +11785,7 @@ The affinity-score was independently rediscovered by four fields as the one cros
 
 ## [ADR-050] The `incident=` Key + the Signal-2 Routing Rule: an Incident-Less Cluster Is Capped at Suspected (Principled Caution, Not a Gap)
 
-**Status**: Draft 2026-06-10 (v05 Outfitters/converge wave; targets `0.5-dev`). The do-now AXIS-slice of the two-signal frame (ADR-054); the ORGAN is charter. **RATIFIED 2026-06-10** (maintainer seal-gate; the `incident=` macro-key + the tier-routing rule with two tier-inputs — Signal-2 + generalization-confidence; the all→Suspected ceiling named principled-caution; staged lifecycle + consistency-audit).
+**Status**: Draft 2026-06-10 (targets `0.5-dev`). The do-now AXIS-slice of the two-signal frame (ADR-054); the ORGAN is charter. **RATIFIED 2026-06-10** (the `incident=` macro-key + the tier-routing rule with two tier-inputs — Signal-2 + generalization-confidence; the all→Suspected ceiling named principled-caution; staged lifecycle + consistency-audit).
 
 **Developed through**: ADR drafting, the innate-arm reframe (Signal-2 as the shared afferent), the maintainer's axis-vs-organ split + the "principled caution, not a gap" framing, with first-principles + adversarial review pending.
 
@@ -11798,7 +11795,7 @@ The affinity-score was independently rediscovered by four fields as the one cros
 
 ## Finding
 
-The Cartographers charted antigen's entire **adaptive** immune arm and never the **innate** arm (an observation that surfaced it). The two-signal model (Janeway/Matzinger, 30+ years settled): an adaptive lymphocyte never fires on **Signal-1** (structural recognition) alone — it needs **Signal-2** (a costimulatory *danger signal*: did this shape actually cause harm?) or it goes anergic/tolerant. Cognate in antigen:
+Prior design exploration charted antigen's entire **adaptive** immune arm and never the **innate** arm. The two-signal model (Janeway/Matzinger, 30+ years settled): an adaptive lymphocyte never fires on **Signal-1** (structural recognition) alone — it needs **Signal-2** (a costimulatory *danger signal*: did this shape actually cause harm?) or it goes anergic/tolerant. Cognate in antigen:
 
 - **Signal-1** = the shipped structural match: a `#[dread]`/`#[red_flag]` mark, a `shape_digest` cluster, an `anti_unify` draft. **Antigen has this.**
 - **Signal-2** = did-this-shape-actually-CAUSE-a-failure: an incident, a panic, a reverted commit, a co-located failing test. **Antigen has NO Signal-2 organ.**
@@ -12041,9 +12038,9 @@ The coarse ordinal dial (Suspected/Named, ADR-039) is the do-now policy-lever: a
 
 ---
 
-## ADR-052 .. ADR-055 — The Four Organizing-Axis Frame-ADRs (v05 Outfitters)
+## ADR-052 .. ADR-055 — The Four Organizing-Axis Frame-ADRs (v0.5)
 
-> **Status**: **RATIFIED 2026-06-10** (v05 Outfitters/converge wave; targets `0.5-dev`; maintainer seal-gate — each axis frontier-honest, PROVEN/DEFERRED). Four ratifiable frame-ADRs, drafted together for legibility — **each ratifies individually**. The Cartographers surfaced four organizing axes (`frames/`); a frame that stays informal context is enforced by nobody. These ADRs **ratify each axis scoped to what is PROVEN / do-now within it**, so the Pioneers *enforce* the frame, not treat it as flavor. The vision-maximum of each axis is named and *deferred* (charter), never smuggled in as a do-now claim.
+> **Status**: **RATIFIED 2026-06-10** (targets `0.5-dev`; each axis frontier-honest, PROVEN/DEFERRED). Four ratifiable frame-ADRs, drafted together for legibility — **each ratifies individually**. Four organizing axes were surfaced (`frames/`); a frame that stays informal context is enforced by nobody. These ADRs **ratify each axis scoped to what is PROVEN / do-now within it**, so the implementation *enforces* the frame rather than treating it as flavor. The vision-maximum of each axis is named and *deferred* (charter), never smuggled in as a do-now claim.
 >
 > **Drafting discipline (the whole point of scoping a frame-ADR):** a frame is seductive — it wants to claim its entire vision. Each ADR below carries a hard **PROVEN / DEFERRED** line so the do-now claim is exactly the falsifiable slice and the rest is sequenced charter. This is ADR-044 frontier-honesty applied to the *frames themselves*.
 
@@ -12053,7 +12050,7 @@ The coarse ordinal dial (Suspected/Named, ADR-039) is the do-now policy-lever: a
 
 **Status**: **RATIFIED 2026-06-10**. **Related**: ADR-039 (the confidence dial — the score IS this, surfaced; recognition not new build); ADR-044 (frontier-honesty); ADR-049 (the cross-cutting "no caller emits un-scored output" invariant this frame grounds — ADR-049 is the *enforcement*, ADR-052 is the *frame*); the diversity-spine frame (`frames/affinity-score-is-the-spine`).
 
-**Finding.** The Cartographers' first organizing axis (from design exploration): B (the shipped `self_tolerance` governor — the thymus) is the **constant**; every caller is a **diversity-generator B makes safe**, and they all terminate in the same scored output. The affinity-score was independently rediscovered by four fields (dev-trust, spec-mining, conformal prediction, the subset-principle) as the one cross-cutting carrier. **One field, two readings** (Tension-1, maintainer-resolved): the score is a *partial order* (the spine — "this draft is higher-affinity than that one") AND an *ordinal dial* (the lever — Suspected/Named cut-points). These are not in tension; they are two reads of one field.
+**Finding.** The first organizing axis (from design exploration): B (the shipped `self_tolerance` governor — the thymus) is the **constant**; every caller is a **diversity-generator B makes safe**, and they all terminate in the same scored output. The affinity-score was independently rediscovered by four fields (dev-trust, spec-mining, conformal prediction, the subset-principle) as the one cross-cutting carrier. **One field, two readings** (Tension-1, maintainer-resolved): the score is a *partial order* (the spine — "this draft is higher-affinity than that one") AND an *ordinal dial* (the lever — Suspected/Named cut-points). These are not in tension; they are two reads of one field.
 
 **Decision (frame).** The affinity-score is the **spine of the learning core**: a recognized, load-bearing structural axis along which every caller's output is ordered and tiered. The score is **the shipped provenance-ladder + Suspected/Named dial (ADR-039), surfaced into the caller path** — recognition (ADR-006), not a new metric.
 
@@ -12083,7 +12080,7 @@ The coarse ordinal dial (Suspected/Named, ADR-039) is the do-now policy-lever: a
 
 **Status**: **RATIFIED 2026-06-10**. **Related**: ADR-050 (the `incident=` macro-key + routing rule — the do-now AXIS-slice of this frame; ADR-050 is the *enforcement*, ADR-054 is the *frame*); ADR-047 (GATE-G — the innate veto lives *inside* the gate-soundness bug, see below); ADR-003 (the metaphor); the two-signal-gate frame (`frames/the-two-signal-gate`, tagged `#innate-arm`).
 
-**Finding.** The third organizing axis names what the *whole rest of the map missed*: the crew charted the entire **adaptive** arm and never the **innate** arm. The two-signal model (Janeway/Matzinger, 30+ years settled): adaptive immunity never fires on Signal-1 (structural recognition) alone; it needs Signal-2 (a costimulatory **danger signal** — did this shape actually CAUSE harm?) or the cell goes anergic/tolerant. Cognate: **Signal-1** = the shipped `#[dread]` / cluster / `anti_unify` structural match; **Signal-2** = did-this-shape-actually-cause-a-failure (incident / panic / reverted-commit / co-located failing test). **Antigen has no Signal-2 organ.** And the reframe that makes it art: **GATE-G vacuity IS Signal-1-present / Signal-2-absent** — the briefing's mandated fix ("the corpus must EXERCISE the draft") is, term-for-term, *installing costimulation*. Signal-2 is the **shared afferent** under the pruner, the forgetting-curve, and plasma/memory-fate.
+**Finding.** The third organizing axis names what the prior work missed: the entire **adaptive** arm was charted but never the **innate** arm. The two-signal model (Janeway/Matzinger, 30+ years settled): adaptive immunity never fires on Signal-1 (structural recognition) alone; it needs Signal-2 (a costimulatory **danger signal** — did this shape actually CAUSE harm?) or the cell goes anergic/tolerant. Cognate: **Signal-1** = the shipped `#[dread]` / cluster / `anti_unify` structural match; **Signal-2** = did-this-shape-actually-cause-a-failure (incident / panic / reverted-commit / co-located failing test). **Antigen has no Signal-2 organ.** And the reframe that makes it art: **GATE-G vacuity IS Signal-1-present / Signal-2-absent** — the briefing's mandated fix ("the corpus must EXERCISE the draft") is, term-for-term, *installing costimulation*. Signal-2 is the **shared afferent** under the pruner, the forgetting-curve, and plasma/memory-fate.
 
 **Decision (frame).** The two-signal gate is antigen's **innate arm**, and **Signal-2 (danger) is a single shared afferent** that multiple organs subscribe to — not a per-organ feature. The frame names Signal-2 as a first-class axis distinct from Signal-1's structural match.
 
@@ -12109,13 +12106,13 @@ The coarse ordinal dial (Suspected/Named, ADR-039) is the do-now policy-lever: a
 
 ## The four frames as one structure (why they ratify together)
 
-The four axes are not independent — they are the **control loop** of the organism, each governing one stage: ADR-052 (spine = what flows IN, the scored generators) → ADR-054 (two-signal = the danger-gated SELECTION) → ADR-053 (tolerance-grid = what keeps the selector HONEST over time) → ADR-055 (ratification-ceiling = the THROUGHPUT bound on the whole loop). Ratifying them as a set makes the control-loop frame (ADR-037) *enforceable at the axis level* — a Pioneer building any caller can check it against the four frames and know which stage it serves, scored, danger-gated, tolerance-bounded, and judgeable. Each is its own falsifiable claim (own PROVEN/DEFERRED line); together they are the immune feedback loop a coherence-rule certified as ONE recurrent tangle.
+The four axes are not independent — they are the **control loop** of the organism, each governing one stage: ADR-052 (spine = what flows IN, the scored generators) → ADR-054 (two-signal = the danger-gated SELECTION) → ADR-053 (tolerance-grid = what keeps the selector HONEST over time) → ADR-055 (ratification-ceiling = the THROUGHPUT bound on the whole loop). Ratifying them as a set makes the control-loop frame (ADR-037) *enforceable at the axis level* — a contributor building any caller can check it against the four frames and know which stage it serves, scored, danger-gated, tolerance-bounded, and judgeable. Each is its own falsifiable claim (own PROVEN/DEFERRED line); together they are the immune feedback loop a coherence-rule certified as ONE recurrent tangle.
 
 ---
 
 ## [ADR-056] The C-Side Non-Degeneracy Guard + the Soft Generalization-Confidence Signal: the Generator's Two Halves of Island-2.5
 
-**Status**: Draft 2026-06-10 (v05 Outfitters/converge wave; targets `0.5-dev`). The generator (C) half of the Island-2.5 SPLIT, pulled charter→do-now as the co-requisite of GATE-G (ADR-047). Thin — it adds one refusal predicate + one confidence signal to the existing `anti_unify`/`propose` path. **RATIFIED 2026-06-10** (maintainer seal-gate; predicate grounded against the real `anti_unify` at `propose.rs:108-192` — binary `constraints ⊆ {Item, ImplOfTrait}`, no magic number; shares the (A)-binary predicate with ADR-047; staged lifecycle + consistency-audit).
+**Status**: Draft 2026-06-10 (targets `0.5-dev`). The generator (C) half of the Island-2.5 SPLIT, pulled charter→do-now as the co-requisite of GATE-G (ADR-047). Thin — it adds one refusal predicate + one confidence signal to the existing `anti_unify`/`propose` path. **RATIFIED 2026-06-10** (predicate grounded against the real `anti_unify` at `propose.rs:108-192` — binary `constraints ⊆ {Item, ImplOfTrait}`, no magic number; shares the (A)-binary predicate with ADR-047; staged lifecycle + consistency-audit).
 
 **Developed through**: ADR drafting, first-principles deconstruction (the P1 single-responsibility split + the reciprocal pass that located the two halves), and the maintainer's Island-2.5 SPLIT ruling (a refusal-guard + a tier-input-signal, not one monolithic guard).
 
@@ -12237,9 +12234,9 @@ One question — **does the draft carry body conjuncts beyond `{Item, ImplOfTrai
 
 ---
 
-## Amendment 1 (2026-06-11, self-ratified during the Pioneers build wave) — the degenerate REFUSAL lives in `propose`, not `anti_unify`'s tail; OQs 1–3 resolved
+## Amendment 1 (2026-06-11) — the degenerate REFUSAL lives in `propose`, not `anti_unify`'s tail; OQs 1–3 resolved
 
-**Status**: RATIFIED (build-wave self-ratify; supersede-not-erase — §Mechanics-1's "the guard at `anti_unify`'s tail" is PRESERVED above as the intent and REFINED here on placement).
+**Status**: RATIFIED (supersede-not-erase — §Mechanics-1's "the guard at `anti_unify`'s tail" is PRESERVED above as the intent and REFINED here on placement).
 
 **The divergence (reconciling §Mechanics-1 with ADR-048).** §Mechanics-1 located the non-degeneracy guard "at `anti_unify`'s tail … if `is_degenerate(&draft)`, return `None`." But **ADR-048 §Decision states `anti_unify` is *unchanged* — "Returns the raw hypothesis"** (the raw `Fingerprint` is exposed for *inspection*, plainly labeled, ADR-044/048). Making `anti_unify` itself refuse a degenerate draft would (a) contradict ADR-048's "unchanged" and (b) blind the inspection path (the dogfood test + the ATK harnesses call `anti_unify` directly to *examine* the raw draft, including a bare-structural one — `learn_dogfood_propose.rs`, `atk_047_shape_fragility_seam.rs`).
 
@@ -12256,13 +12253,13 @@ One question — **does the draft carry body conjuncts beyond `{Item, ImplOfTrai
 
 ---
 
-<!-- ADR-057 + ADR-058: v0.6 Outfitters/converge ADRs, landed DRAFT (research-review certification defers to the fresh Survey notary per the no-self-witness ruling). Full drafts in the project design history. -->
+<!-- ADR-057 + ADR-058: v0.6 ADRs, landed DRAFT (research-review certification defers to the fresh Survey notary per the no-self-witness ruling). Full drafts in the project design history. -->
 
 ## [ADR-057] The Conservative Default Under Uncertainty: Antigen's Safe Default Is the Action That Minimizes Counterfactual Trust-Harm — RETAIN/ROUTE Under Uncertainty (Per-Instance Free, Aggregate-Bounded by a Scarcity-Completion); Positive Evidence Decides Outside the Default
 
 *(Title supersedes the rev-1 framing "PRUNE for the one autoreactive verb" — Amendment 2 dissolved the "inverted verb" into the certainty/uncertainty boundary: the default rules the uncertainty region only; the pruner acts on positive harm-evidence, outside the default. See Amendment 2.)*
 
-**Status**: **DRAFT** (v06 Outfitters/converge wave; targets the v0.6 line). Staged through the lifecycle — Phase-1 first-principles, adversarial attack-annotation, research-review — before ratification. **Nothing builds on this un-ratified; a draft is a claim at the lowest tier.** Cross-cutting FRAME-ADR (a fifth organizing axis alongside ADR-052..055). Enforced per-organ by the existing safety primitives (ADR-047 GATE-G route-to-human, ADR-053 the tolerance grid, ADR-054 the two-signal gate); this ADR is the FRAME that names the single principle they each instantiate.
+**Status**: **DRAFT** (targets the v0.6 line). Staged through the lifecycle — Phase-1 first-principles, adversarial attack-annotation, research-review — before ratification. **Nothing builds on this un-ratified; a draft is a claim at the lowest tier.** Cross-cutting FRAME-ADR (a fifth organizing axis alongside ADR-052..055). Enforced per-organ by the existing safety primitives (ADR-047 GATE-G route-to-human, ADR-053 the tolerance grid, ADR-054 the two-signal gate); this ADR is the FRAME that names the single principle they each instantiate.
 
 **Developed through**: ADR drafting (the counterfactual-harm reframe + the two routed-safety-question folds), research review (the 5-field unanimity + Gold/Angluin + base-rate + herd-immunity literature), first-principles deconstruction (`ratification-is-a-judgment-of-counterfactual-harm`), adversarial review (the blanket-RETAIN stress-test — the autoreactive-verb exception), and value + systems + naive-question analysis (flagging the unmade default-bias decision).
 
@@ -12420,7 +12417,7 @@ So the conservative default is honest ONLY when stated as: *preserve optionality
 
 ## [ADR-058] The Co-Native Output Contract: Legibility Generalized to Re-Inheritable-by-Either-Forgetting-Mind — The Story Facet Is a Rendering of a Typed Event-Stream, Never a Free-Text Source
 
-**Status**: **DRAFT** (v06 Outfitters/converge wave; targets the v0.6 line). Staged through the lifecycle — first-principles (via the dream-recognition + split-2 ruling), a naive-question refutation attempt that FOUND the conformance criterion, research-review — before ratification. **Nothing builds on this un-ratified.** **SUPERSEDES-AND-EXTENDS ADR-042** (the legibility spine): ADR-042's "legible to a human" becomes the human-only SPECIAL CASE of "re-inheritable by either forgetting mind." Append-only; ADR-042's text stands, this extends its scope.
+**Status**: **DRAFT** (targets the v0.6 line). Staged through the lifecycle — first-principles, a naive-question refutation attempt that FOUND the conformance criterion, research-review — before ratification. **Nothing builds on this un-ratified.** **SUPERSEDES-AND-EXTENDS ADR-042** (the legibility spine): ADR-042's "legible to a human" becomes the human-only SPECIAL CASE of "re-inheritable by either forgetting mind." Append-only; ADR-042's text stands, this extends its scope.
 
 **Developed through**: a naive-question pass (the C1 conformance criterion — found via a refutation attempt on the two-readers seam), first-principles deconstruction (the schema-fold: story = the typed event-stream itself, tombstone + autobiography fall out as renderings; the split-2 persona-c home ruling), ADR drafting (from the canonical clause-home + the leaf-payload exception statement), and a biology-grounding observation (`[[lived/the-elder-letter-is-the-autobiography]]` — persona-c, the makers' own persistence topology as the proof).
 
@@ -12514,7 +12511,7 @@ This ADR governs the SCHEMA of the life-record's story facet (the keystone STOCK
 
 ## [ADR-059] The Life-Record STOCK: Antigen's First Persistent Substrate Is an Append-Only Per-Class EVENT-Stream (Score + Outcome + Story), Drift-Immune Because It Stores Events Not Claims, Current-State Always Derived
 
-**Status**: **DRAFT — SKELETON** (v06 Pioneers build-step-zero; targets the v0.6 line). The keystone ROOT of the maturing organism — the stock every maturing organ reads and writes. Staged through the lifecycle (first-principles, adversarial, research-review) before ratification; **co-ratified with the MATURE ADR (ADR-061)** because the STOCK's score-payload field needs MATURE's affinity-2-vector type. **Nothing builds on this un-ratified.** This skeleton lands the FINDING + the DECISION-stub + the load-bearing invariants + the open questions, so the build's root ADR is present on disk; the full §Mechanics + §Standing-Pressure-Audit finalize with the schema lock.
+**Status**: **DRAFT — SKELETON** (targets the v0.6 line). The keystone ROOT of the maturing organism — the stock every maturing organ reads and writes. Staged through the lifecycle (first-principles, adversarial, research-review) before ratification; **co-ratified with the MATURE ADR (ADR-061)** because the STOCK's score-payload field needs MATURE's affinity-2-vector type. **Nothing builds on this un-ratified.** This skeleton lands the FINDING + the DECISION-stub + the load-bearing invariants + the open questions; the full §Mechanics + §Standing-Pressure-Audit finalize with the schema lock.
 
 **Developed through** (from the converge substrate): a naive-question pass (the C1 conformance criterion via ADR-058 — the story facet is a typed event-stream), a biology-grounding observation (`[[convergence/already-in-the-substrate]]`, `[[lived/the-elder-letter-is-the-autobiography]]` — the makers' own persistence topology as the proof), systems analysis (`[[loops/fate-record-is-the-missing-stock]]` — the L4-staleness precondition), and ADR drafting (this skeleton).
 
@@ -12560,7 +12557,7 @@ This ADR governs the SCHEMA of the life-record's story facet (the keystone STOCK
 
 ## [ADR-060] The Keystone Afferent Decomposition: One Shared Sensing Spine (STOCK → READER → DISCRIMINATOR → DEFENDED-SENSOR), 2-Axis-Do-Now + Witness-Resolution, Build-Once Not Per-Organ
 
-**Status**: **DRAFT — SKELETON** (v06 Pioneers build-step-zero; targets the v0.6 line). The build-once afferent spine — the strongest build-once signal in the survey (five blind lenses converged: ~5 bespoke detectors across tolerance-grid/size-adapt/afferent collapse to 1 READER + 1 DISCRIMINATOR + 1 DEFENDED-SENSOR + thin adapters). Staged through the lifecycle before ratification. **Nothing builds on this un-ratified.** This skeleton lands the FINDING + the four-organ DECISION-stub + the do-now/do-later honest split + open questions.
+**Status**: **DRAFT — SKELETON** (targets the v0.6 line). The build-once afferent spine — the strongest build-once signal in the survey (five blind lenses converged: ~5 bespoke detectors across tolerance-grid/size-adapt/afferent collapse to 1 READER + 1 DISCRIMINATOR + 1 DEFENDED-SENSOR + thin adapters). Staged through the lifecycle before ratification. **Nothing builds on this un-ratified.** This skeleton lands the FINDING + the four-organ DECISION-stub + the do-now/do-later honest split + open questions.
 
 **Developed through** (from the converge substrate): `[[loops/afferent-sensing-is-one-shared-organ]]`, `[[loops/discriminator-is-the-shared-dual-sensor]]`, `[[loops/curate-is-a-multi-stock-router]]`, `[[naive-question/the-discriminator-is-blind-for-silent-classes]]`, `[[naive-question/dormant-vs-obsolete-the-third-state]]`, and ADR drafting (this skeleton).
 
@@ -12603,9 +12600,9 @@ This ADR governs the SCHEMA of the life-record's story facet (the keystone STOCK
 
 ---
 
-## ADR-047 Amendment 3 (2026-06-17, drafted on the v06 Pioneers build-step-zero) — GATE-G's spare-clean certificate is SOUND ONLY over a CLOSED `Constraint` alphabet; opening the alphabet routes to the human oracle, not the gate
+## ADR-047 Amendment 3 (2026-06-17) — GATE-G's spare-clean certificate is SOUND ONLY over a CLOSED `Constraint` alphabet; opening the alphabet routes to the human oracle, not the gate
 
-**Status**: DRAFT (v06 Pioneers build-step-zero — names a load-bearing assumption that was IMPLICIT and un-stated in the original §Decision; that silence is itself the finding the ADR-keeper's CODE-TRUE walk surfaced). Append-only; the §Decision and Amendments 1–2 stand. Awaits the fresh Survey notary for promotion to Witnessed (no-self-witness).
+**Status**: DRAFT (names a load-bearing assumption that was IMPLICIT and un-stated in the original §Decision; that silence is itself the finding the ADR-keeper's CODE-TRUE walk surfaced). Append-only; the §Decision and Amendments 1–2 stand. Awaits the fresh Survey notary for promotion to Witnessed (no-self-witness).
 
 **What the original ADR-047 left implicit.** ADR-047's §Decision establishes that `promote_if_safe` certifies a draft is safe when it (A)-binary-discriminates AND is near-miss-witnessed AND spares the clean corpus. The §Frontier statement honestly bounds this as *corpus-bounded, not a total-safety proof* — but it never named the OTHER precondition the certificate silently rests on: **that the `Constraint` alphabet is CLOSED.** This amendment names it, because a v0.6 organ (`learn-the-grammar-itself`) could open it, and an un-named assumption is an assumption chosen by accident at the surface that violates it.
 
@@ -12629,23 +12626,23 @@ This ADR governs the SCHEMA of the life-record's story facet (the keystone STOCK
 
 ---
 
-## ADR-051 Amendment 1 (2026-06-17, drafted on the v06 Pioneers build-step-zero) — the narrow()/PersistedSpecimen re-mint precondition (`is_discriminating` recurses into combinator children) is SATISFIED; this amendment records the satisfaction and locks it as a standing invariant
+## ADR-051 Amendment 1 (2026-06-17) — the narrow()/PersistedSpecimen re-mint precondition (`is_discriminating` recurses into combinator children) is SATISFIED; this amendment records the satisfaction and locks it as a standing invariant
 
-**Status**: DRAFT (v06 Pioneers build-step-zero). Append-only; the §Decision (the one type-invariant + the four parts) stands. Awaits the fresh Survey notary for promotion to Witnessed (no-self-witness).
+**Status**: DRAFT. Append-only; the §Decision (the one type-invariant + the four parts) stands. Awaits the fresh Survey notary for promotion to Witnessed (no-self-witness).
 
 **What the original ADR-051 was silent on (the ADR-keeper's CODE-TRUE-of-the-ADR finding).** ADR-051 §Mechanics says `narrow()` and `PersistedSpecimen`-load re-mint through `promote_if_safe`, re-gating ARBITRARY fingerprints (narrow re-parses a user-edited fingerprint into arbitrary nesting; load re-parses persisted bytes). ADR-051 NEVER NAMED that re-gating arbitrary nesting REQUIRES `is_discriminating` to recurse into `AnyOf`/`Not` children — else the (A)-binary safety refusal silently fails on a `Not(bare_anchor)` / `AnyOf([bare_anchors])` draft (the latent combinator-anchor vacuity). A builder following ADR-051's §Mechanics literally, against a NON-recursive `is_discriminating`, would open exactly the gate-bypass vacuity ADR-051's one-invariant exists to prevent. ADR-051's silence made that vacuity a *spec-compliant* outcome — the silent-lie state the ADR-keeper exists to prevent. (Carried from v0.5 as the "MUST-FIX-BEFORE-ADR-051"; briefing.md:75; `safety/gate-g-combinator-anchor-vacuity`.)
 
-**The CODE-TRUE status as of v0.6 Pioneers — the precondition is SATISFIED and COMMITTED on `0.6-dev`.** Verified against committed `0.6-dev` (`git show 0.6-dev:antigen/src/learn/self_tolerance.rs`):
+**The CODE-TRUE status as of v0.6 — the precondition is SATISFIED and COMMITTED on `0.6-dev`.** Verified against committed `0.6-dev` (`git show 0.6-dev:antigen/src/learn/self_tolerance.rs`):
 
 - `is_discriminating` (`self_tolerance.rs:289-312`) now RECURSES into the boolean combinators: `Not(child) => is_discriminating(child)` (a negation is discriminating iff its inner signal is — negating a real signal stays real; negating a pure anchor binds its complement, vacuous); `AllOf(children) | AnyOf(children) => children.iter().any(is_discriminating)` (a combinator is discriminating iff ANY descendant leaf is). The previous form returned `true` UNCONDITIONALLY for the three combinators — an assumption, not a check.
 - The born-red ATK `antigen/tests/atk_p0_is_discriminating_recursive_descent.rs` is GREEN (4 passed, 0 failed, 0 ignored). It pins: `Not(Item(Struct))` non-discriminating, `Not(AllOf([Item, ImplOfTrait]))` non-discriminating, `AnyOf([Item(Struct), Item(Enum)])` non-discriminating, AND the positive control (`Not(BodyCalls("unwrap"))` and `AnyOf([Item, BodyCalls])` STAY discriminating — the fix narrows, it does not flip).
-- **COMMIT PROVENANCE:** the recursive-descent fix is committed as `93d1c20` ("fix(safety): P0 — is_discriminating descends into combinator children (GATE-G vacuity)"), in the history of `0.6-dev` HEAD. (An earlier revision of this amendment carried a "staged-not-committed" caveat written against a torn working checkout; that caveat is RETRACTED — the fix is committed on `0.6-dev`. The Survey wave certifies against this committed HEAD.)
+- **COMMIT PROVENANCE:** the recursive-descent fix is committed as `93d1c20` ("fix(safety): P0 — is_discriminating descends into combinator children (GATE-G vacuity)"), in the history of `0.6-dev` HEAD. (An earlier revision of this amendment carried a "staged-not-committed" caveat written against a torn working checkout; that caveat is RETRACTED — the fix is committed on `0.6-dev`. Survey review certifies against this committed HEAD.)
 
 **The decision (what this amendment locks).** ADR-051's narrow()/PersistedSpecimen re-mint surface **MAY ship on a sound (A)-binary partition** — the precondition the original was silent on is met and committed on `0.6-dev` (`93d1c20`). And the recursion is hereby a **STANDING INVARIANT of the ratification record's re-gate**: the soundness of re-gating arbitrary-nesting fingerprints (the whole point of narrow/persist re-parse) DEPENDS on `is_discriminating` recursing into `Not`/`AnyOf`/`AllOf` children. **Any future edit that reverts `is_discriminating` to a non-recursive or unconditional-`true`-on-a-combinator form re-opens the combinator-anchor vacuity AT the narrow/persist surface (a silent wrong-promote on a `Not(bare_anchor)` re-minted draft) and must be rejected on that ground.** The born-red ATK is the regression guard; deleting it is deleting the proof the invariant holds.
 
 **Relationship to ADR-047 Amendments 1 & 2 (no overlap, complementary).** ADR-047 Amd2's recursive canonical-form (`normalized_top_level`) flattens REDUNDANT nested `AllOf` wrappers (associativity — a structural normalization); ADR-047 Amd2's remainder-discriminates guard requires a near-miss's dropped-conjunct remainder to still discriminate. This ADR-051 amendment is about a DIFFERENT axis: `is_discriminating`'s own RECURSION into `Not`/`AnyOf` children (the SEMANTIC descent the `AllOf`-flatten does not reach — `Not` and `AnyOf` are never flattened, they carry meaning). All three landed; all three are load-bearing; none subsumes another.
 
-**Resolves.** The "GATED on P0" status the briefing-for-pioneers §4 ledger assigns ADR-051 — the P0 gate is satisfied and committed on `0.6-dev` (`93d1c20`). ADR-051's implementation (narrow/persist/Fate/`ratify`) may proceed on a sound partition. The standing-invariant clause keeps the precondition from silently regressing once narrow/persist callers depend on it.
+**Resolves.** The "GATED on P0" status the v0.6 implementation ledger assigns ADR-051 — the P0 gate is satisfied and committed on `0.6-dev` (`93d1c20`). ADR-051's implementation (narrow/persist/Fate/`ratify`) may proceed on a sound partition. The standing-invariant clause keeps the precondition from silently regressing once narrow/persist callers depend on it.
 
 
 ---
@@ -13100,17 +13097,15 @@ The original code's comment ASSERTS the churn cause ("the recall dropped because
 
 **Supersedes.** Nothing — it SCOPES (does not retract) ADR-065 §"The δ' correction is COUPLED to the cutpoint set (T3)" and §"The exponential-histogram bucket-merge (§3.3)": both remain the source-verified Bifet-Gavaldà math; this amendment records that the SHIPPED detection path realizes the floor regime's all-`n` cut-set, not the full regime's O(log n) one, so the coupling claim describes the paper, not the current `detect`.
 
-**Resolves.** The doc-over-code over-claim surfaced by the v0.6 docs-currency sweep — antigen's own `DocClaimVsCodeImplementationMismatch` turned inward on the ADWIN organ. Latent (unreachable behind the `n ≥ 30` power gate while every class is `UnderPowered`), ruled for honest-scope now so the doc stops claiming a cutpoint-set the code does not use, with the math-direction fix flagged for the build wave before the full regime first becomes reachable.
+**Resolves.** The doc-over-code over-claim surfaced by the v0.6 docs-currency sweep — antigen's own `DocClaimVsCodeImplementationMismatch` turned inward on the ADWIN organ. Latent (unreachable behind the `n ≥ 30` power gate while every class is `UnderPowered`), ruled for honest-scope now so the doc stops claiming a cutpoint-set the code does not use, with the math-direction fix flagged before the full regime first becomes reachable.
 
 ---
 
 ## ADR-066 — Antibodies: the Adaptive Self; antigen as a Lens (Observability over Declaration)
 
 **Status**: Ratified 2026-06-24 (v0.6.1). Drafted from a real dogfood pain (tambear's `#[defended_by]` limits)
-through two author-distinct ceremony councils — a 7-lens design pass (aristotle · contrarian · outsider ·
-constructive/hostile/mal-intent adversarial · observer) and a 7-lens verification pass (detail-auditor ·
-biology-faithfulness · mal-intent · practitioner · pedant · observer · expansionist) — plus a sealing notary.
-The §4 math-development is a named research follow-on, not part of this ratification.
+through two author-distinct ceremony councils — a 7-lens design pass and a 7-lens verification pass — plus a
+sealing notary. The §4 math-development is a named research follow-on, not part of this ratification.
 
 **Supersedes / extends**: ADR-029 (supersedes class-level "one witness credits all sites" matching + the
 test-only witness scope; **preserves + generalizes** "immunity is *observed*, never *declared*"). ADR-029
@@ -13330,7 +13325,7 @@ fingerprint is a public good independent of antigen-adoption.** **Triple life** 
 research-account / proof-of-emission; *the journey is part of the proof*) · citable identity — co-native; public
 artifacts badge the **scoped** claim, never bare "proven".
 
-**The math-research follow-on.** §4's named candidates are developed in a dedicated math-research voyage (read
+**The math-research follow-on.** §4's named candidates are developed in a dedicated math-research effort (read
 the original papers; verify faithfulness term-by-term; apply the guard; name the lossiness) — first targets: the
 quasispecies fitness-function build-spec and the percolation critical-fraction computation. Its output feeds a
 successor ADR; the membrane/compartment-boundary primitive is its convergent design target.
@@ -13368,7 +13363,7 @@ successor ADR; the membrane/compartment-boundary primitive is its convergent des
 - **The §4 math is named, not developed** — the faithfulness verification (guard applied term-by-term) and the
   membrane primitive are the math-research follow-on's work.
 - **ADR-024 reconciliation is incomplete** (`clonal` fixed-seed enforcement, `igg` nominal-only limit not yet
-  carried through — Hill-cooperativity is the likely closer, pending the math voyage).
+  carried through — Hill-cooperativity is the likely closer, pending that math-research effort).
 - **`Structural` re-check depth** (immediate-body vs effective-behavior) must be pinned in implementation.
 
 ### Glossary
@@ -13415,15 +13410,13 @@ loudness*, attributed to *this* site. No "done" is declared; the current biology
 
 ## ADR-067 — The Stroma: a Sovereign Immune Lattice over Composed Resolution
 
-**Status**: **Ratified 2026-06-30** (v0.7, the-keel CONVERGE wave). Drafted from notebook-007 v4 (Proposed,
-post-two-councils 2026-06-25), the F-adr-067 first-principles deconstruction (INWARD), the notebook-008 observer
-consistency audit, and the **two evidence waves** (the-crucible + the-spike-yard) that ran the deciding
-experiments. Ratified by an **author-distinct ceremony panel** (aristotle + adversarial certify; the drafter is
-excluded — the no-self-witness invariant) after the two open design-forks were **blessed by both co-captains**
-(the sovereign-merge mechanism + the incorrect-stroma kernel amendment). The compose-vs-sovereign **partition**
-is folded in as integral (it reassigns the build framing from re-pour to compose and touches NO invariant); the
-**engine** machinery (ADR-068) and the **resolution-tier ladder** (ADR-069) are drafted alongside as their own
-ADRs.
+**Status**: **Ratified 2026-06-30** (v0.7). Drafted from notebook-007 v4 (Proposed, 2026-06-25),
+the F-adr-067 first-principles deconstruction (INWARD), the notebook-008 consistency audit, and two evidence
+experiments. Ratified by an **author-distinct ceremony panel** (drafter excluded
+— the no-self-witness invariant) after two open design-forks were resolved (the sovereign-merge mechanism +
+the incorrect-stroma kernel amendment). The compose-vs-sovereign **partition** is folded in as integral (it
+reassigns the build framing from re-pour to compose and touches NO invariant); the **engine** machinery
+(ADR-068) and the **resolution-tier ladder** (ADR-069) are drafted alongside as their own ADRs.
 
 **Implements / depends-from**: ADR-066 §2 (the stroma-builder — collision-free identity, lifecycle, digest,
 graph-integrity); §11 (the persisted map = the output / distributed-cognition substrate); §4 + notebook 006
@@ -13542,7 +13535,7 @@ from the recomputable OUTPUT (compose, D1/materialized-D1, parity-guardable); ne
 recomputability line is **complete** (the F2 enumeration) and **operationally-detectable** (carrier-growth is a
 build-time crossing signal — a *detector*, not a second independent derivation). (14) **Three structurally-forced
 build invariants ratify WITH the partition** (its exhaustiveness depends on them): **(a) the SOVEREIGN-MERGE
-primitive** — the authored half cannot merge by re-derivation; the co-captain-blessed triple is an ordered
+primitive** — the authored half cannot merge by re-derivation; the ratified triple is an ordered
 authored-event-log (git commit-DAG order) + digest-dedup (structural_digest clustering) + an authority-arbiter
 for concurrent events, encoded as the `SovereignMerge`/`ComposeMerge` type-split; **(b) the tool-INDEPENDENT
 stroma-fidelity witness** — the freshness witness must read filesystem mtime, never r-a output (no-self-witness
@@ -13605,7 +13598,7 @@ invention).
 ### Resolved seams
 
 Each ruled by the first-principles pass + the evidence waves; the full deconstruction chains (append-only,
-supersede-not-erase) live in the the-keel deposits.
+supersede-not-erase) are retained internally.
 
 - **Peer-vs-child constitute (F1)**: write is a PEER of constitute on the SOVEREIGN side, COLLAPSED-TO-ONE on
   the COMPOSE side — the same recomputability cut. Deciding criterion: does constitute GROW the carrier?
@@ -13617,7 +13610,7 @@ supersede-not-erase) live in the the-keel deposits.
   event-log write-store** (event-sourcing's state=projection / log=truth). The 4-cell taxonomy is exhaustive
   over the snapshot region. Reopener: a modal/counterfactual temporal read (TEMPORAL × COUNTERFACTUAL — a
   never-done).
-- **Incorrect-stroma failure mode (F3, co-captain-blessed)**: named **OBSERVATIONAL-AUTOIMMUNITY** — the stroma
+- **Incorrect-stroma failure mode (F3)**: named **OBSERVATIONAL-AUTOIMMUNITY** — the stroma
   is a fallible READ; a confidently-wrong stroma yields confidently-wrong verdicts with no error signal. Amends
   009's kernel with the prior baseline intent `StromaFaithfullyReflectsReality` + the presents
   `StromaFidelityUnwitnessed` (form-not-content), witnessed **tool-independently** (filesystem mtime, never r-a
@@ -13633,10 +13626,9 @@ supersede-not-erase) live in the the-keel deposits.
 
 ## ADR-068 — The Stroma Engine: compose the herd (salsa clock + semiring-datalog queries)
 
-**Status**: **Ratified 2026-06-30** (v0.7, the-keel CONVERGE wave). The build-spec for the COMPOSE half of the
-stroma (ADR-067 §F). Ratified by the author-distinct ceremony panel (aristotle + adversarial certify; the
-drafter excluded). Every measured figure is from antigen's OWN call-graph (the-crucible + the-spike-yard,
-2026-06-28/29), author-distinct and re-run-confirmed.
+**Status**: **Ratified 2026-06-30** (v0.7). The build-spec for the COMPOSE half of the stroma (ADR-067 §F).
+Ratified by the author-distinct ceremony panel (drafter excluded). Every measured figure is from antigen's OWN
+call-graph (2026-06-28/29), author-distinct and re-run-confirmed.
 
 **Implements / depends-from**: **ADR-067 §F** (the compose region this engine realizes — the seam sits AT the
 recomputability line); **ADR-002 Amendment 3 clause-1** (salsa, rust-analyzer, ascent are herd-immunized
@@ -13748,11 +13740,10 @@ benchmarking are named-near-term follow-ons.
 
 ## ADR-069 — The Read Axis: the 3-tier resolution ladder + the read-frame is 3 axes with a live T3 slot
 
-**Status**: **Ratified 2026-06-30** (v0.7, the-keel CONVERGE wave). Ratified by the author-distinct ceremony
-panel (aristotle + adversarial certify; the drafter excluded). Two braided rulings: (A) the **resolution-tier
-ladder** (syntactic < resolved < mir-exact) that ADR-067 §3b/§11 and ADR-068 defer to here; (B) the
-**read-frame arity** — the 3-vs-5 read-axis cross-island dissent, resolved-by-evidence to **3 axes with a
-structurally-present, live T3 slot**.
+**Status**: **Ratified 2026-06-30** (v0.7). Ratified by the author-distinct ceremony panel (drafter excluded).
+Two braided rulings: (A) the **resolution-tier ladder** (syntactic < resolved < mir-exact) that ADR-067
+§3b/§11 and ADR-068 defer to here; (B) the **read-frame arity** — the 3-vs-5 read-axis dissent,
+resolved-by-evidence to **3 axes with a structurally-present, live T3 slot**.
 
 **Implements / depends-from**: **ADR-067 §3b** (provenance is a closed-alphabet TIER, not an invented scalar —
 this ADR ratifies the tier ladder) + **§11** (the SCIP resolved tier); **ADR-068** (the engine rides this
@@ -13839,22 +13830,19 @@ antigen's own discovered-not-invented discipline).
 
 ### Open seams
 
-The "incorrect stroma" failure mode is named in 009's kernel as OBSERVATIONAL-AUTOIMMUNITY (ADR-067 Open-seam-3,
-co-captain-blessed); two of its triggers live on this ladder — the **SCIP-reconstruction-unverified** born-red
+The "incorrect stroma" failure mode is named in 009's kernel as OBSERVATIONAL-AUTOIMMUNITY (ADR-067 Open-seam-3);
+two of its triggers live on this ladder — the **SCIP-reconstruction-unverified** born-red
 ATK (a macro-call-site degenerate fixture must pass before SCIP edges carry `presents`-grade) and the
 **index-staleness** freshness-demotion (resolved → dread when the index is older than source). The mir-exact
 tier's adapter-churn risk needs the same version-handshake discipline ADR-067 §10 names for the r-a adapter.
 
 ## ADR-070 — The Frame Build-Spec: the read-write-constitute coordinate frame + the constituted base
 
-**Status**: **Ratified 2026-06-30** (v0.7, the-frame PROVISION → CONVERGE wave). The additive in-frame
-BUILD-SPEC that turns ADR-067/068/069's settled law into a builder-ready construction guide. Ratified by an
-author-distinct ceremony panel (converge-adversarial + converge-observer certify; the converge-adr-specialist
-drafter excluded — the no-self-witness invariant). Authored to the **co-captain-ruled scope-line** (Tekgy + main,
-Option A). **Additive, append-only, supersede-nothing — ZERO new invariants of 067/068/069/009-kernel; zero
-Type-C.** The full 725-line spec lives in the wave deposit
-(`jbd/expeditions/the-frame/deposits/ADR-070-DRAFT-frame-extended-build-spec.md`); this ledger carries the
-ratified ruling + the load-bearing invariants compactly.
+**Status**: **Ratified 2026-06-30** (v0.7). The additive in-frame BUILD-SPEC that turns
+ADR-067/068/069's settled law into a builder-ready construction guide. Ratified by an author-distinct ceremony
+panel (drafter excluded — the no-self-witness invariant). **Additive, append-only, supersede-nothing — ZERO
+new invariants of 067/068/069/009-kernel; zero Type-C.** This ledger carries the ratified ruling + the
+load-bearing invariants compactly.
 
 **Implements / depends-from**: **ADR-067** (the Stroma — the partition, the FQ-identity finding, the F-clause
 invariants, the 009-kernel fidelity witness in §F3); **ADR-068** (the engine — salsa clock + semiring-datalog,
@@ -13862,10 +13850,8 @@ the relational base, the condensation compile-assert); **ADR-069** (the read axi
 3-axis read-frame + the live T3 slot). This ADR adds the build-spec the three leave silent; it changes no
 invariant of any of them.
 
-**Related**: the find-the-gaps wave's 9 signed islands (the BINDS-vs-LEAVES-OPEN map, the gap-map-aristotle, the
-7 implementer PROPOSE-islands), the converge-executor's `frame-skeleton/` crate tree (the empty frame this spec
-fills), `antigen-fingerprint/src/digest.rs` (the two existing digest strip-sets), `antigen/src/scan/` (the
-afferent capture the base is constituted FROM), the no-self-witness invariant, *Journey Before Destination*.
+**Related**: `antigen-fingerprint/src/digest.rs` (the two existing digest strip-sets), `antigen/src/scan/`
+(the afferent capture the base is constituted FROM), the no-self-witness invariant.
 
 ### Finding
 
@@ -13887,11 +13873,11 @@ below is an INSTANCE of this one rule (C1 fractal-partition · C2 honesty-monoto
 checked — antigen dogfooding its hold-you-honest-by-construction thesis onto its own base). The builder who
 internalizes the rule generates the Nth decision rather than memorizing N.
 
-**The scope-line (co-captain Option A — do NOT reopen): FRAME epoch = the read-CONTRACT (the typed query
-surface — signatures + types — FROZEN) + the constituted BASE + STEP-2 query STUBS. ENGINE epoch = the
-ascent-closure bodies + degraded-mode + the CLASS-2 FP measurement. NO Type-B experiment seated this expedition;
-the syntactic-degraded observational-autoimmunity risk DEFERS to the engine (do not ship confidently-wrong edges
-before the resolved tier exists).** This is the keel's frame-POINT vs engine-NODE cut.
+**The scope-line (ratified, do NOT reopen): FRAME epoch = the read-CONTRACT (the typed query surface —
+signatures + types — FROZEN) + the constituted BASE + STEP-2 query STUBS. ENGINE epoch = the ascent-closure
+bodies + degraded-mode + the CLASS-2 FP measurement. The syntactic-degraded observational-autoimmunity risk
+DEFERS to the engine (do not ship confidently-wrong edges before the resolved tier exists).** This is the
+keel's frame-POINT vs engine-NODE cut.
 
 **The build-order (PROMINENT — `read-write-constitute` is the CONCEPTUAL triad, NOT the build-sequence):
 `read-CONTRACT (freeze first) → CONSTITUTE (base beneath it) → read-IMPL (stubs) → write`.** A builder who reads
@@ -13973,7 +13959,7 @@ dogfooded onto antigen's own base).
 The 009-amendment is ratified INSIDE ADR-067 §F3, NOT a standalone `ADR-009 Amendment` section — a newcomer
 grepping for it misses it (the standalone amendment document is a named follow-on). The G10 accrete/migrate void
 (an accretion that ACTS as a migration by reinterpreting a prior lens's attribute) is a NAMED inherited
-obligation for the future schema-evolution expedition, with a born-red placeholder — not a frame Type-C (the
+obligation for future schema-evolution work, with a born-red placeholder — not a frame Type-C (the
 frame's initial schema has no prior attribute to migrate from). The frame ships a `parity_check_hook()` signature
 for the deferred parity oracle. **Engine-wave inherited debts**: the `CondensedGraph` type-state for the
 IDEMPOTENT compile-assert (ADR-068 should name the idiom); the attr-by-attr strip-set partition (the born-red
@@ -13985,17 +13971,17 @@ specified in the deposit §8.
 
 ## ADR-067 Amendment 1 (2026-07-07, ratified on the v0.7 organ-layer convergence) — The Capability Expansion Law: expand-and-contract, era-batched breaks, build→absorb→prove, witnessed-complete absorb-done
 
-**Status**: **RATIFIED** (v0.7 organ-layer convergence). Append-only, supersede-not-erase. Certified by an author-distinct ceremony panel (aristotle + adversarial; the main-loop drafter/converger excluded — the no-self-witness invariant; the adversarial pass BLOCKED twice and was re-certified after the fixes below landed); co-captain-blessed (Tekgy). Full design + the deconstruction that shaped it: research notebooks 018 (draft), 020 (council: scout + aristotle×2 + adversarial×2), 021 (the human rulings).
+**Status**: **RATIFIED** (v0.7 organ-layer convergence). Append-only, supersede-not-erase. Certified by an author-distinct ceremony panel (drafter excluded — the no-self-witness invariant; the adversarial pass BLOCKED twice and was re-certified after the fixes below landed). Full design + the deconstruction that shaped it are documented internally.
 
 **What ADR-067 left implicit (the charter posture this retires).** The 0.6.x charters carried an implicit *internal build-strategy* posture — **"enrich, never replace"**: ship flat floors, add stroma ceilings later, keep the flat path beside the stroma indefinitely. A permanent dual substrate violates the stroma's reason to exist (Ashby: the regulator must hold the variety of everything it regulates; two sources of truth is the dual-source drift antigen exists to catch). *(Distinct from — and NOT touching — the ratified "enrichment, not gating" user-facing API-layering ADR: a different axis.)*
 
-**The law (the ruling).** Every capability that **builds**, in the sequence `[stroma, frame, tier-0 organs, signal-algebra, latent tree]`, runs **BUILD → ABSORB → PROVE**, each a full expedition-pass (or three voyage-sets in one expedition) over a shared charter set:
+**The law (the ruling).** Every capability that **builds**, in the sequence `[stroma, frame, tier-0 organs, signal-algebra, latent tree]`, runs **BUILD → ABSORB → PROVE**, each a full pass over a shared charter set:
 
 - **A1 · Unconditional refactor; user-impact is what's governed.** No adoption trigger (the earlier draft's "while adoption is negligible" was an outcome-in-disguise — deleted). *Do what the codebase needs; no tech debt, even at the cost of user debt* — because user debt is always **handled**, one of three ways: **(a)** the user-facing **observable** contract is unchanged (not merely the typed signature — a change to observable behavior is a *break*, not "invisible"); **(b)** a documented breaking-change version — **including a behavior-change note whenever observable behavior changes even though the typed API is untouched** (log/error formats, ordering, defaults, span names); or **(c)** an old→new migration tool. *Honest residual (Hyrum's Law):* undocumented emergent reliance on observable behavior cannot be fully enumerated; the behavior-change note is the mitigation, not a guarantee — stated openly, not hidden.
 - **A2 · Expand-and-contract (parallel-change).** The new stroma-native impl lives **alongside** the old, in separate functions — both work, old `#[deprecated]`. ABSORB re-points every **internal** caller onto the new; the old path stays only for external back-compat. Within a thematic era everything is **additive** → the whole `0.x.y` line stays cargo-compatible, zero user-facing breaks.
 - **A3 · Breaks batched at the era boundary (contract).** At the minor bump, a contract pass removes that era's deprecated code — clean because the era's absorbs already wired everything internal onto the new; only external users who ignored a whole era of deprecation feel it (announced, batched, + migration tool).
-- **A4 · Three-pass build.** BUILD → ABSORB → PROVE, three full passes over the shared charters (re-homed + un-sealed between, or three voyage-sets in one expedition). Each pass-end tags a release; the **prove**-tagged release is the one to rely on.
-- **A5 · ABSORB-done = exhaustive-AND-witnessed (no *unscanned* assumption).** Regression clean against existing tests — *except* where behavior was changed on purpose (fix the now-wrong test to the new intent + docs + migration; tests serve reality, new behavior earns a born-red witness). Plus the full JBD cycle (dream→…→document everything the component enables — no hard end; soft-done = "finding more needs user feedback or another dream wave"). Plus **witnessed-complete coverage (scanned, tier-tagged, not assumed)** — entire codebase, doc suite, help output, doc/line comments, parameter names — *checked* at a named tier, never claimed as QED (antigen's own three-valued / self-distrust discipline: a scan is a witness-to-a-tier, not a proof; the intent is to admit no *unscanned* assumption, not to claim completeness the tool cannot prove).
+- **A4 · Three-pass build.** BUILD → ABSORB → PROVE, three full passes over the shared charters (re-homed + un-sealed between). Each pass-end tags a release; the **prove**-tagged release is the one to rely on.
+- **A5 · ABSORB-done = exhaustive-AND-witnessed (no *unscanned* assumption).** Regression clean against existing tests — *except* where behavior was changed on purpose (fix the now-wrong test to the new intent + docs + migration; tests serve reality, new behavior earns a born-red witness). Plus document everything the component enables — no hard end; soft-done = "finding more needs user feedback or another design pass." Plus **witnessed-complete coverage (scanned, tier-tagged, not assumed)** — entire codebase, doc suite, help output, doc/line comments, parameter names — *checked* at a named tier, never claimed as QED (antigen's own three-valued / self-distrust discipline: a scan is a witness-to-a-tier, not a proof; the intent is to admit no *unscanned* assumption, not to claim completeness the tool cannot prove).
 
 **Supersedes.** RATIFIES an invariant (single-substrate; expansion-before-consumer) that **overrides** the non-ADR "enrich, never replace" charter posture (0.6.x charters + ATK files). Does NOT touch the ratified "enrichment, not gating" user-facing layering ADR.
 
@@ -14005,7 +13991,7 @@ specified in the deposit §8.
 
 ## ADR-071 — The Loop is Edges, Not Nodes: Organ-Hood & the Afferent Organ Hierarchy
 
-**Status**: **RATIFIED 2026-07-07** (v0.7 organ-layer convergence). Certified by an author-distinct ceremony panel (aristotle + adversarial; the main-loop drafter excluded — the no-self-witness invariant; the adversarial pass BLOCKED on the afferent-cycle gap and was re-certified after the acyclicity invariant below landed); co-captain-blessed (Tekgy). Full design: research notebooks 019 (draft), 020 (council), 021 (rulings), 017 (the organ council + Boyd ruling).
+**Status**: **RATIFIED 2026-07-07** (v0.7 organ-layer convergence). Certified by an author-distinct ceremony panel (drafter excluded — the no-self-witness invariant; the adversarial pass BLOCKED on the afferent-cycle gap and was re-certified after the acyclicity invariant below landed). Full design is documented internally.
 
 **Implements / depends-from**: **ADR-037** (the six-stage control loop — kept as a *taxonomy of edges*, forbidden as a build-WBS); **ADR-067** + its Capability Expansion Law amendment (every organ, tier-0 or latent, is a capability subject to BUILD→ABSORB→PROVE); **ADR-005** (sub-clause F — the write-back-as-facts step is a new trust boundary, see B5); the **stroma closure** (`antigen-stroma/src/read/query.rs`) gates the tier-0 organs.
 
@@ -14025,13 +14011,13 @@ The 0.7 organ layer was chartered "5 organs + capstone." A council found a trap 
 - **B4 · The capstone is the recursive LATENT-ORGAN TREE — not a JOIN.** Base organs pre-wire during their own absorbs, so there is no leftover join. The capstone is the afferent tree above tier-0 (integrators + controllers sensing from organs) + the meta-tooling the full set enables — open-ended, climbing the DAG (B2′) to the **fixpoint** (combining organ outputs yields nothing new; the DAG's finite tiers make the fixpoint reachable, not a false promise of finite construction).
 - **B5 · Signal-algebra is the substrate the latent tree stands on** — organ outputs written back as first-class stroma facts/edges, at a strictly-higher tier (B2′); its own build/absorb/prove, before the latent tree. **This write-back is a new trust boundary — organ A's output → stroma → organ B reads it — and carries ADR-005 sub-clause F**: the provenance tiers (ADR-067) + parity surveillance validate the written fact before a higher organ extends trust to it.
 - **B6 · Era model.** `0.7.x` = the whole immune organism (stroma + tier-0 organs + signal-algebra + latent tree), one additive climb to the fixpoint — the latent tree is *still* organ-building (higher-order sensing), so it stays `0.7`. `0.8` = open/TBD (a future contract + next theme); platform/value = distant horizon.
-- **B7 · Known-completeness (honest).** The organ map is a *design* decomposition, not a parallel *build* one, until the stroma closure ships (`query.rs:25/35/47/61` + `scip.rs:36` are `todo!()`). *(Update 2026-07-09, supersede-not-erase: the four `query.rs` closures now ship — `reachable_from`/`field_at`/`provenance_of`/`blast_from` are built (Fable one-shot), as hand-rolled reducers that bypass `run_closure`; `scip.rs:36 ingest_scip` remains `todo!()`, and the queries-through-the-semiring-dial wiring is a chartered follow-on. So the closure is **partially** shipped — the read surface answers, the SCIP ingest and the dial-wiring do not yet.)* "Known-complete" holds only w.r.t. ADR-037's *open* six-stage frame; the four structurally-guaranteed (Ashby) self-regulation latent organs are named on_hold: **observability, controllability, delay/latency, stability-margin**.
+- **B7 · Known-completeness (honest).** The organ map is a *design* decomposition, not a parallel *build* one, until the stroma closure ships (`query.rs:25/35/47/61` + `scip.rs:36` are `todo!()`). *(Update 2026-07-09, supersede-not-erase: the four `query.rs` closures now ship — `reachable_from`/`field_at`/`provenance_of`/`blast_from` are built, as hand-rolled reducers that bypass `run_closure`; `scip.rs:36 ingest_scip` remains `todo!()`, and the queries-through-the-semiring-dial wiring is a chartered follow-on. So the closure is **partially** shipped — the read surface answers, the SCIP ingest and the dial-wiring do not yet.)* "Known-complete" holds only w.r.t. ADR-037's *open* six-stage frame; the four structurally-guaranteed (Ashby) self-regulation latent organs are named on_hold: **observability, controllability, delay/latency, stability-margin**.
 
 ---
 
 ## ADR-037 Amendment 1 — The four control-theory extras are latent ORGANS (ADR-071 B7), not candidate stages
 
-**Status**: **RATIFIED 2026-07-08** (sweep run-1). Certified by an author-distinct ceremony panel (aristotle: SOUND; adversarial: PASS; the main-loop drafter excluded — the no-self-witness invariant); co-captain-blessed (Tekgy). Source: research notebooks 023 (the cross-project sweep), 024 (amendment drafts). **Supersede-not-erase** — corrects a superseded phrase in ADR-037 §"What this ADR does NOT do"; the original text remains.
+**Status**: **RATIFIED 2026-07-08**. Certified by an author-distinct ceremony panel (drafter excluded — the no-self-witness invariant). Source: internal design analysis. **Supersede-not-erase** — corrects a superseded phrase in ADR-037 §"What this ADR does NOT do"; the original text remains.
 
 **Amends**: ADR-037 §"What this ADR does NOT do" (the "may add a stage" bullet). **Warrant**: ADR-071 (RATIFIED 2026-07-07) B1 + B7.
 
@@ -14043,30 +14029,30 @@ The bullet hedged that "a real control loop carries more structure than this fra
 
 ## ADR-068 Amendment 1 — The four semirings as a conjectured λ-temperature family (DESIGN-tier, falsifiable)
 
-**Status**: **RATIFIED 2026-07-08** (sweep run-1). Certified by an author-distinct ceremony panel (aristotle: SOUND; adversarial: PASS, with a co-captain read-aloud on the standing verdict, confirmed by Tekgy; main-loop drafter excluded — no-self-witness); co-captain-blessed (Tekgy). Source: research notebooks 022 §11.3 (the math-witness), 023, 024. This amendment encodes a **conjecture + its falsifier as process, never an outcome** (ADRs encode invariant + process, not outcome).
+**Status**: **RATIFIED 2026-07-08**. Certified by an author-distinct ceremony panel (drafter excluded — no-self-witness invariant). Source: internal design analysis. This amendment encodes a **conjecture + its falsifier as process, never an outcome** (ADRs encode invariant + process, not outcome).
 
-**Amends**: ADR-068 §Decision item 2 (the "four semirings over one path-query" MEASURED result). **Warrant**: research nb 022 §11.3.
+**Amends**: ADR-068 §Decision item 2 (the "four semirings over one path-query" MEASURED result). **Warrant**: the internal render-math analysis.
 
-Item 2 establishes as MEASURED that the four semirings are ONE reachability *relation* under four value-algebras (the identical 33,882-pair relation). The 2026-07-08 math-witness (nb 022 §11.3; pith/tambear's liftability + depth-kernel render-math) proposes a deeper unification *one tier below* the measured fact: the four value-algebras may themselves be **λ-limits of a single log-sum-exp temperature family** — `softmin_λ(z) = −(1/λ)·log Σ exp(−λ zᵢ) → min` as `λ→∞` — with detection/blast at the `λ=0` (additive) end and field-conductance at the `λ→∞` (tropical-min) end.
+Item 2 establishes as MEASURED that the four semirings are ONE reachability *relation* under four value-algebras (the identical 33,882-pair relation). The 2026-07-08 math-witness (the liftability + depth-kernel render-math) proposes a deeper unification *one tier below* the measured fact: the four value-algebras may themselves be **λ-limits of a single log-sum-exp temperature family** — `softmin_λ(z) = −(1/λ)·log Σ exp(−λ zᵢ) → min` as `λ→∞` — with detection/blast at the `λ=0` (additive) end and field-conductance at the `λ→∞` (tropical-min) end.
 
-**This is a DESIGN-tier CONJECTURE, not a ratified fact.** It does not overturn item 2's measured "one relation, four semirings"; it proposes that the four *value-algebras* are one thermometer. **The falsifier** (owned by the signal-algebra build, which pours the first real `field_at` — `antigen-stroma/src/read/query.rs:35` is `todo!()` today): a single `fold_λ` must recover the detection/blast count at `λ=0` AND the conductance-min at `λ→∞` *bit-for-bit*, with `O(exp(−λΔ))` deformation on a λ-sweep property test. **Pass** → the `Op`-dial is a real temperature-family (one fold, a knob). **Fail** (two structurally distinct reducers that merely happen to be a min and a sum) → the λ-family is a *rhyme*; a **follow-on amendment records the failure and supersedes this conjecture** (append-only per `docs/process.md` — not a zero-ceremony auto-withdrawal). Either way the corpus stays true: what this amendment ratifies is the *test* (an invariant that holds regardless of the conjecture's fate), never the conjecture's outcome. The **standing verdict** (co-captain-confirmed) is **"rhyme until a unifying `fold_λ` is built."**
+**This is a DESIGN-tier CONJECTURE, not a ratified fact.** It does not overturn item 2's measured "one relation, four semirings"; it proposes that the four *value-algebras* are one thermometer. **The falsifier** (owned by the signal-algebra build, which pours the first real `field_at` — `antigen-stroma/src/read/query.rs:35` is `todo!()` today): a single `fold_λ` must recover the detection/blast count at `λ=0` AND the conductance-min at `λ→∞` *bit-for-bit*, with `O(exp(−λΔ))` deformation on a λ-sweep property test. **Pass** → the `Op`-dial is a real temperature-family (one fold, a knob). **Fail** (two structurally distinct reducers that merely happen to be a min and a sum) → the λ-family is a *rhyme*; a **follow-on amendment records the failure and supersedes this conjecture** (append-only — not a zero-ceremony auto-withdrawal). Either way the corpus stays true: what this amendment ratifies is the *test* (an invariant that holds regardless of the conjecture's fate), never the conjecture's outcome. The **standing verdict** is **"rhyme until a unifying `fold_λ` is built."**
 
-*(Update 2026-07-09, supersede-not-erase: the "`antigen-stroma/src/read/query.rs:35` is `todo!()` today" clause is now stale — a Fable one-shot built `field_at` + all four query paths + the four semirings (`antigen-stroma/src/engine/semiring.rs`, `read/query.rs`). But it landed as **four separate hand-rolled reducers** — each query rolls its own BFS/max-fold, and the `Semiring` library sits beside the queries, not under them (the production paths bypass `run_closure`). That is precisely the "two structurally distinct reducers" branch of the falsifier, so the standing verdict is **UNCHANGED and corroborated — still "rhyme until a unifying `fold_λ` is built."** What moved is only the falsifier's *hook*: the unbuilt thing is no longer `field_at` (built) but the `fold_λ` that would recover all four query paths as λ-limits of one fold — the still-open follow-on organ that wires the queries through the semiring dial. The falsifier invariant + verdict stand as ratified; the pass/fail test is unrun.)*
+*(Update 2026-07-09, supersede-not-erase: the "`antigen-stroma/src/read/query.rs:35` is `todo!()` today" clause is now stale — `field_at` + all four query paths + the four semirings (`antigen-stroma/src/engine/semiring.rs`, `read/query.rs`) are now built. But they landed as **four separate hand-rolled reducers** — each query rolls its own BFS/max-fold, and the `Semiring` library sits beside the queries, not under them (the production paths bypass `run_closure`). That is precisely the "two structurally distinct reducers" branch of the falsifier, so the standing verdict is **UNCHANGED and corroborated — still "rhyme until a unifying `fold_λ` is built."** What moved is only the falsifier's *hook*: the unbuilt thing is no longer `field_at` (built) but the `fold_λ` that would recover all four query paths as λ-limits of one fold — the still-open follow-on organ that wires the queries through the semiring dial. The falsifier invariant + verdict stand as ratified; the pass/fail test is unrun.)*
 
 ---
 
 ## ADR-071 Amendment 1 — B4′: the Fock-boundary constraint on the latent tree
 
-**Status**: **RATIFIED 2026-07-08** (sweep run-1). Certified by an author-distinct ceremony panel (aristotle: SOUND; adversarial: **BLOCKED** on two over-reaches — an unwarranted "sole organ" exclusivity claim and present-tense enforcement language for an unbuilt type-wall — **re-certified CLEAR** by a fresh adversarial seat after both were fixed; main-loop drafter excluded — no-self-witness); co-captain-blessed (Tekgy). Source: research notebooks 022 §11.5 (the Fock boundary), 023 (incl. the 2026-07-08 dimensional-Nyquist find), 024. **Append to** ADR-071 §Decision as B4′.
+**Status**: **RATIFIED 2026-07-08**. Certified by an author-distinct ceremony panel (adversarial pass BLOCKED on two over-reaches — an unwarranted "sole organ" exclusivity claim and present-tense enforcement language for an unbuilt type-wall — **re-certified CLEAR** by a fresh adversarial seat after both were fixed; drafter excluded — no-self-witness invariant). Source: internal design analysis. **Append to** ADR-071 §Decision as B4′.
 
-**Amends**: ADR-071 §Decision B4 (constrains "open-ended"). **Warrant**: research nb 022 §11.5; retroactively explains the zero-caller beta bar the project already lives by (ADR-006 recognition).
+**Amends**: ADR-071 §Decision B4 (constrains "open-ended"). **Warrant**: the internal render-math analysis; retroactively explains the zero-caller beta bar the project already lives by (ADR-006 recognition).
 
-**B4′ · The Fock-boundary constraint on the latent tree.** B4 calls the capstone tree "open-ended, climbing the DAG to the fixpoint." The 2026-07-08 cross-project math-witness (nb 022 §11.5; the liftability framework's Fock boundary) sharpens "open-ended": the climb is open-ended in **tier-depth** but must stay **fixed-N in afferent breadth**. The recursive latent-organ tree must remain **fixed-N** — every latent organ senses from a *statically-fixed set* of lower organs (a fixed-arity afferent tuple), keeping the whole tree inside the **liftable class** (Liftability Theorem 16.1: a fixed-k hierarchy at any k is liftable, "with N replaced by kN"). The **learn-core is the one currently-chartered organ positioned to cross the Fock boundary** (variable-N — a population whose count depends on field state, the one non-liftable class); it therefore lives **outside** the latent tree's additive climb, gated by its own safety-governance, never wired as an ordinary afferent node in the fixpoint. *(No uniqueness proof is claimed — a future organ could also require variable-N; if one arises it takes the same outside-the-tree, separately-governed placement. What is forced is the **placement** of any Fock-crosser, not that there is exactly one.)* **This retroactively explains why the learn-core could not be stamped stable with zero callers** — a Fock-crossing organ is categorically harder than a fixed fold.
+**B4′ · The Fock-boundary constraint on the latent tree.** B4 calls the capstone tree "open-ended, climbing the DAG to the fixpoint." The 2026-07-08 math-witness (the liftability framework's Fock boundary) sharpens "open-ended": the climb is open-ended in **tier-depth** but must stay **fixed-N in afferent breadth**. The recursive latent-organ tree must remain **fixed-N** — every latent organ senses from a *statically-fixed set* of lower organs (a fixed-arity afferent tuple), keeping the whole tree inside the **liftable class** (Liftability Theorem 16.1: a fixed-k hierarchy at any k is liftable, "with N replaced by kN"). The **learn-core is the one currently-chartered organ positioned to cross the Fock boundary** (variable-N — a population whose count depends on field state, the one non-liftable class); it therefore lives **outside** the latent tree's additive climb, gated by its own safety-governance, never wired as an ordinary afferent node in the fixpoint. *(No uniqueness proof is claimed — a future organ could also require variable-N; if one arises it takes the same outside-the-tree, separately-governed placement. What is forced is the **placement** of any Fock-crosser, not that there is exactly one.)* **This retroactively explains why the learn-core could not be stamped stable with zero callers** — a Fock-crossing organ is categorically harder than a fixed fold.
 
-**Typed corollary (a build directive to signal-algebra, feeds B5 sub-clause F — NOT yet built):** a latent organ's afferent input should be a fixed-arity tuple (liftable), not a variable-length population; the signal-algebra expedition's type-wall **must enforce** this — a `Vec`-shaped population input *would* flag the Fock-crosser at the type level. This enforcement does not exist today. *(Update 2026-07-09, supersede-not-erase: the B2′ type-wall's single-input CORE has since landed — `antigen-stroma/src/signal.rs`, the successor-tier `write_back → Up<R>` + the `EfferentChannel` channel-split, nb 022 §11.7 now reads "CORE type-wall now BUILT". What remains unbuilt is exactly this Fock-arity enforcement — the fixed-arity-tuple-vs-`Vec`-population type-wall — plus the multi-input `MaxTier`. So the corollary stands as an OPEN build directive on the now-existing wall, not a directive on a wholly-absent one.)*
+**Typed corollary (a build directive to signal-algebra, feeds B5 sub-clause F — NOT yet built):** a latent organ's afferent input should be a fixed-arity tuple (liftable), not a variable-length population; the signal-algebra type-wall **must enforce** this — a `Vec`-shaped population input *would* flag the Fock-crosser at the type level. This enforcement does not exist today. *(Update 2026-07-09, supersede-not-erase: the B2′ type-wall's single-input CORE has since landed — `antigen-stroma/src/signal.rs`, the successor-tier `write_back → Up<R>` + the `EfferentChannel` channel-split — the CORE type-wall is now BUILT. What remains unbuilt is exactly this Fock-arity enforcement — the fixed-arity-tuple-vs-`Vec`-population type-wall — plus the multi-input `MaxTier`. So the corollary stands as an OPEN build directive on the now-existing wall, not a directive on a wholly-absent one.)*
 
-**Companion — the depth-cap, conjectured form (2026-07-08), DESIGN-tier:** B4's tier-*depth* is also bounded by the observer's rank — `ResolutionTier` has 3 values (rank-1, depth ~2), so "open-ended climb" needs either an unbounded organ-output tier (ℕ) distinct from `ResolutionTier`, or a **dimensional-Nyquist depth cap**. The cap's *form* is recovered from pith (`well-tempered-expedition/expedition-log.md:227`, PR-3): the **information-theoretic octave**, `D ≈ log₂(N) + const` — each doubling of the base organs' *independent* signal adds ~1 resolvable latent-organ tier; above that a higher organ falls below the **Marchenko-Pastur noise floor** and *aliases*. So the honest cap is "climb while information-gain clears the MP floor, ~`log₂(N_facts)` tiers." **[TIER: pith PR-3 is a PRE-REGISTERED PREDICTION, not a confirmed result — this imports the depth-cap's conjectured *form*, not a proven bound; it graduates conjecture→witnessed only when pith's experiment confirms PR-3.]**
+**Companion — the depth-cap, conjectured form (2026-07-08), DESIGN-tier:** B4's tier-*depth* is also bounded by the observer's rank — `ResolutionTier` has 3 values (rank-1, depth ~2), so "open-ended climb" needs either an unbounded organ-output tier (ℕ) distinct from `ResolutionTier`, or a **dimensional-Nyquist depth cap**. The cap's *form* — the **information-theoretic octave**, `D ≈ log₂(N) + const` — each doubling of the base organs' *independent* signal adds ~1 resolvable latent-organ tier; above that a higher organ falls below the **Marchenko-Pastur noise floor** and *aliases*. So the honest cap is "climb while information-gain clears the MP floor, ~`log₂(N_facts)` tiers." **[TIER: this depth-cap is a PRE-REGISTERED PREDICTION, not a confirmed result — this imports the conjectured *form*, not a proven bound; it graduates conjecture→witnessed only when confirmed by experiment.]**
 
-**Tier-honesty:** B4′'s fixed-N constraint is a math-backed DESIGN constraint; the variable-N learn-core population is itself DESIGN-tier — not built (nb 022 §11.5, §11.7): the code today matures one draft (`antigen/src/learn/maturation.rs`), with no `Repertoire` population type.
+**Tier-honesty:** B4′'s fixed-N constraint is a math-backed DESIGN constraint; the variable-N learn-core population is itself DESIGN-tier — not built (per the liftability analysis): the code today matures one draft (`antigen/src/learn/maturation.rs`), with no `Repertoire` population type.
 
 ---
