@@ -22,5 +22,9 @@ syn = { version = "2", features = ["full", "visit"] }
 walkdir = "2"
 tempfile = "3"
 
-[lints]
-workspace = true
+# NOTE: this is a publish=false reproducible falsifier harness, not shipped code — it
+# deliberately does NOT inherit the workspace's pedantic+nursery+missing_docs bar (default
+# clippy still applies, so real bugs are still caught). Keeps throwaway research code honest
+# without holding it to production doc/style standards.
+[lints.clippy]
+all = "warn"

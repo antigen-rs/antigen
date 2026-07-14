@@ -60,13 +60,11 @@ pub fn ingest_scip(scip_index_path: &std::path::Path) -> Vec<EdgeReconstruction>
     use protobuf::Message;
     use scip::types::{Index, SymbolRole};
 
-    let bytes = match std::fs::read(scip_index_path) {
-        Ok(b) => b,
-        Err(_) => return Vec::new(),
+    let Ok(bytes) = std::fs::read(scip_index_path) else {
+        return Vec::new();
     };
-    let index = match Index::parse_from_bytes(&bytes) {
-        Ok(i) => i,
-        Err(_) => return Vec::new(),
+    let Ok(index) = Index::parse_from_bytes(&bytes) else {
+        return Vec::new();
     };
 
     let mut recons = Vec::new();
@@ -101,13 +99,7 @@ pub fn ingest_scip(scip_index_path: &std::path::Path) -> Vec<EdgeReconstruction>
             // The enclosing_range is the body span [body_start_line, 0, body_end_line, 1].
             // The DEF occurrence's range is the identifier span [fn_line, ident_col, end_col].
             // They share the SAME start line — match by line only (ident_col ≠ 0 in most cases).
-            let encloser = if !occ.enclosing_range.is_empty() {
-                let enc_start_line = range_start_line(&occ.enclosing_range);
-                def_fns
-                    .iter()
-                    .find(|&&(sl, _)| sl == enc_start_line)
-                    .map(|&(_, sym)| sym)
-            } else {
+            let encloser = if occ.enclosing_range.is_empty() {
                 // Method 2 (fallback): the largest DEF line ≤ ref_line.
                 // Heuristic: Rust function bodies are sequential and non-interleaved in
                 // typical code; the immediately-preceding DEF is the enclosing function.
@@ -116,24 +108,32 @@ pub fn ingest_scip(scip_index_path: &std::path::Path) -> Vec<EdgeReconstruction>
                     .filter(|&&(sl, _)| sl <= ref_line)
                     .max_by_key(|&&(sl, _)| sl)
                     .map(|&(_, sym)| sym)
+            } else {
+                // Method 1: use enclosing_range (reliable when populated). It shares the
+                // DEF occurrence's start line, so match by line only (ident_col ≠ 0 in most cases).
+                let enc_start_line = range_start_line(&occ.enclosing_range);
+                def_fns
+                    .iter()
+                    .find(|&&(sl, _)| sl == enc_start_line)
+                    .map(|&(_, sym)| sym)
             };
 
-            let callee = &occ.symbol;
+            let dst_sym = occ.symbol.as_str();
 
-            let Some(caller) = encloser else {
+            let Some(src_sym) = encloser else {
                 recons.push(EdgeReconstruction::Unreconstructible);
                 continue;
             };
 
-            if caller == callee {
+            if src_sym == dst_sym {
                 continue; // skip self-recursion
             }
 
             // Generated role: macro-expanded call sites — enclosure may be guessed.
             let is_generated = occ.symbol_roles & (SymbolRole::Generated as i32) != 0;
             let edge = ResolvedEdge {
-                src_symbol: caller.to_string(),
-                dst_symbol: callee.to_string(),
+                src_symbol: src_sym.to_string(),
+                dst_symbol: dst_sym.to_string(),
                 kind: crate::base::facts::EdgeKind::Call,
             };
             if is_generated {
@@ -222,22 +222,6 @@ fn is_fn_symbol(symbol: &str) -> bool {
 /// four elements `[startLine, startChar, endLine, endChar]` (multi-line).
 fn range_start_line(range: &[i32]) -> i32 {
     range.first().copied().unwrap_or(0)
-}
-
-/// A node id built from a SCIP symbol at a given tier (the resolved feeder's node-construction rule).
-///
-/// The symbol string becomes the [`crate::node::id::FqPath`] (carrying its tier); the identity digest
-/// is BLAKE3 over the symbol bytes; cfg-set is empty (SCIP symbols are cfg-resolved upstream). A single
-/// deterministic function so the same symbol always yields the same node identity.
-fn node_from_symbol(symbol: &str, tier: crate::read::ResolutionTier) -> crate::node::StromaNodeId {
-    crate::node::StromaNodeId {
-        fq_path: crate::node::id::FqPath {
-            path: symbol.to_string(),
-            tier,
-        },
-        identity_digest: crate::node::digest::IdentityDigest::of_tokens(symbol.as_bytes()),
-        cfg_set: crate::node::cfg::CfgSet::default(),
-    }
 }
 
 /// Populate the base's [`crate::base::facts::EdgeFacts`] from a batch of SCIP reconstruction outcomes

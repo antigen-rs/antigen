@@ -7,8 +7,11 @@ members = [
     "antigen-macros",
     "antigen-stroma",
     "cargo-antigen",
-    "antigen-stroma-experiment",
 ]
+# The falsifier harness is a publish=false reproducible research artifact (the syntactic-vs-SCIP
+# edge-rate bench), not shipped product — excluded from the workspace so CI does not gate throwaway
+# experiment code, while it stays on disk and buildable standalone (cd antigen-stroma-experiment).
+exclude = ["antigen-stroma-experiment"]
 
 [workspace.package]
 version = "0.6.0"
