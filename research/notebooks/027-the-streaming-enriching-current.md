@@ -189,7 +189,10 @@ Three research sweeps enriched this notebook. Tier-honest verdicts:
 
 **(a) SNR machinery — buildable, mostly RECOGNITION.** `SNR_s(k)` is a *curve* over the tier index (§2 made
 concrete): a per-axis **noise model** with concrete floor estimators (Axis-1 fidelity = syntactic
-false-edge-rate vs SCIP, ~48% prior; Axis-7 co-change = PMI/lift; etc.) and three SNR-metric families
+false-edge-rate vs SCIP — **MEASURED 39.4% on antigen's own graph 2026-07-13** (4594/11673 syntactic
+edges; ~29% hard-core after discounting the enum-constructor extractor artifact), well above the 5%
+falsification floor → the fidelity-tier ladder is **load-bearing** (bench, not analogy); Axis-7 co-change =
+PMI/lift; etc.) and three SNR-metric families
 (edge-set = precision-ratio vs a higher-tier reference; verdict = stability-under-resampling; numeric = μ/σ).
 **One denoiser SHIPPED:** the `TierBarcode` (per-stream tier-filter, `path_homology.rs`). **`corroborate`**
 (`read/tier.rs:104`) is also shipped but is **single fidelity-axis only** — it combines two
@@ -198,9 +201,9 @@ detection grade; it does NOT cross orthogonal axes. With only Axis-1 populated t
 corroboration is even exercisable. The "cross-orthogonal-axis denoiser" is the **genuinely-new organ still
 to build:** the **residual-lift test** — a residual element *un*-explained on its own axis but
 *corroborated* on an orthogonal one is the noise→info event (`¬signal(s₁) ∧ signal(s₂)` = the
-paracrine/hidden-coupling signal), realized as a **cross-axis persistence barcode.** First experiment:
-Axis-1 false-edge-rate vs SCIP on antigen+tambear (converts the prior to MEASURED + validates the
-barcode-as-denoiser).
+paracrine/hidden-coupling signal), realized as a **cross-axis persistence barcode.** First experiment
+(**antigen DONE 2026-07-13 → 39.4%**; `ingest_scip` is now real; tambear + the barcode-as-denoiser validation
+still pending): Axis-1 false-edge-rate vs SCIP converts the prior to MEASURED.
 
 **(b) Self-division — root-portrait/holonomy STRIPPED (measure-before-identity; 4th catch, cleanest).** The
 polynomial read is FALSE as a density fact (modes ≠ roots — Duistermaat: 3 Gaussians → 4 modes;
