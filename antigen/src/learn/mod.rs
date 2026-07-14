@@ -50,6 +50,10 @@
 //! - **CURATE** — [`curate`](crate::learn::curate): the moral-center efferent
 //!   decision-layer (the forget-gate; the conservative default holds when any channel
 //!   is blind, ADR-057).
+//! - **SELF-DIVISION** — [`self_division`](crate::learn::self_division): the
+//!   frontier-native three-verdict organ (split / leave-whole / poised) that reads a
+//!   cluster's affinity Pareto geometry to decide whether a learned class is secretly
+//!   two — the poised bifurcation routes to a human, never auto-splits.
 
 pub mod adwin;
 pub mod affinity;
@@ -59,5 +63,6 @@ pub mod life_record;
 pub mod maturation;
 pub mod propose;
 pub mod reader;
+pub mod self_division;
 pub mod self_tolerance;
 pub mod szz;
