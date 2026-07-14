@@ -62,6 +62,16 @@ missing objective). Import its failure mode: the **"dark room"** — surprise-mi
 trivial model that predicts nothing hard (for antigen: a repertoire that declares nothing, or only trivial
 classes, to keep the gap zero).
 
+> **MEASURED 2026-07-13 (prototype on antigen+tambear SCIP graphs).** The claim "the epistemic term *derives*
+> nb 025's *enter new axes*" is **PARTIAL — and it must be stated as *danger-projected*.** Raw information
+> content does NOT order the axes (semver + cost carry the most info-mass and rank on top); coverage + temporal
+> only reach the podium once weighted by **flip-probability** = P[resolving this uncertainty *flips a
+> danger-verdict*]. So the strategic ranking is the **product** `information-mass × danger-relevance ×
+> downstream-stakes` — the *full* Friston expected-free-energy (pragmatic × epistemic, multiplicatively
+> yoked), not the epistemic term standing alone. State the epistemic term as **danger-projected expected
+> information gain**; and coverage vs temporal swap #1/#2 by whether you weight by node-count (temporal) or
+> downstream-blast (coverage). This *is* proper active inference (the epistemic term is always goal-projected).
+
 ---
 
 ## §3 — The triple-convergence (the deep result)

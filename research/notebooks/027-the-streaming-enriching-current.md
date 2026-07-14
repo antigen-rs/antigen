@@ -102,7 +102,13 @@ flight.** Substrate-holds-all + tier-relative-SNR + Fock-noise-to-info are **one
 three directions. Consequence: *discarding a residual at any tier below the Fock boundary is a bug* — the
 current keeps it; the organ ignores it *without deleting it.*
 
-## §7 — The root-portrait self-division: split / twist / poised (CONJECTURE — under sweep)
+## §7 — The root-portrait self-division: split / twist / poised (SWEEP RETURNED — framing STRIPPED, see §10b)
+
+> **Superseded 2026-07-13:** the polynomial/discriminant/holonomy framing below was math-swept and mostly
+> rejected (modes ≠ roots; the holonomy is a RHYME, 4/4 ingredients absent). What survives is a
+> *frontier-native* trichotomy (SPLIT / LEAVE-WHOLE=overlapping-support / POISED→RouteToHuman) — see §10b and
+> the [[root-portrait-self-division]] charter (corrected). The paragraphs below are retained as the record of
+> what was tested.
 
 A cluster's modal structure reads as a **polynomial root-portrait.** Two modes = a quadratic; the
 discriminant selects THREE regimes (not two):
@@ -147,3 +153,67 @@ motif as nb 022 §11.8 (λ × Mapper-resolution) — here the parameter is the t
   this notebook (fittingly).
 - **Concrete organ landed:** the tier-filtered barcode (`path_homology.rs`) — the first streaming-persistence
   primitive, built ahead of its consumer.
+
+## §10 — Enrichment (2026-07-13 sweeps): the three verdicts folded in
+
+Three research sweeps enriched this notebook. Tier-honest verdicts:
+
+**(a) SNR machinery — buildable, mostly RECOGNITION.** `SNR_s(k)` is a *curve* over the tier index (§2 made
+concrete): a per-axis **noise model** with concrete floor estimators (Axis-1 fidelity = syntactic
+false-edge-rate vs SCIP, ~48% prior; Axis-7 co-change = PMI/lift; etc.) and three SNR-metric families
+(edge-set = precision-ratio vs a higher-tier reference; verdict = stability-under-resampling; numeric = μ/σ).
+**Two denoisers already SHIPPED:** the `TierBarcode` (per-stream tier-filter) + `corroborate`
+(cross-orthogonal-axis — noise *multiplies* because the axes are independent). The genuinely-new organ: the
+**residual-lift test** — a residual element *un*-explained on its own axis but *corroborated* on an
+orthogonal one is the noise→info event (`¬signal(s₁) ∧ signal(s₂)` = the paracrine/hidden-coupling signal),
+realized as a **cross-axis persistence barcode.** First experiment: Axis-1 false-edge-rate vs SCIP on
+antigen+tambear (converts the prior to MEASURED + validates the barcode-as-denoiser).
+
+**(b) Self-division — root-portrait/holonomy STRIPPED (measure-before-identity; 4th catch, cleanest).** The
+polynomial read is FALSE as a density fact (modes ≠ roots — Duistermaat: 3 Gaussians → 4 modes;
+critical-points are *transcendental*). The N-modal root-partition needs a 1-D projection = the Goodhart
+scalar `affinity.rs` refuses (no `Ord`). The **holonomy is a RHYME** (4/4 ingredients absent — no bundle,
+loop, connection, or observable phase; and the render-math witness §11.4 argues to *channel-split phase
+AWAY*, since a phase in the afferent accumulator IS the B2′ oscillation pathology — antigen is *not an
+interferometer*). What SURVIVES → the **frontier-native trichotomy**: SPLIT (two lineages jointly dominate a
+frontier one can't reach) / **LEAVE-WHOLE = overlapping support, NOT a phase** (measurable) / **POISED =
+the `disc=0` bifurcation → `RouteToHuman`** (the one earned discriminant-cognate; Ashby: eager Loop-2 is
+instability). Decidable on shipped `affinity.rs` Pareto geometry. Details + the three assumption-flags:
+[[root-portrait-self-division]].
+
+**(c) The streaming compose/build map — salsa carries the CLOCK, not the SEMANTICS.** salsa (chosen,
+ADR-068) carries the drive-tick clock + tier-monotone coarse-recompute; it carries NONE of the
+residual/streaming/persistence semantics natively.
+- **COMPOSE:** salsa + streaming-stats crates (Welford = noise-floor; t-digest = quantiles) + union-find +
+  `lophat` (ordinary persistence).
+- **BUILD (thin):** the never-stopping **drive loop** (salsa is pull-only); **residuals as tracked-return
+  VALUES** (salsa's `Accumulator` is an output-only TRAP, not readable by higher queries); a per-organ
+  **ε-cutoff brake** (floats wobble → without it the whole stack re-adjudicates every tick); a residual
+  **whiteness stopping-test** (Kalman-innovation — a residual still autocorrelated ⇒ a higher tier *should*
+  exist = a principled fixpoint criterion, sharpening §5's enrichment-saturation).
+- **PORT:** **vineyards** (Dionysus2 C++ → Rust; no Rust impl; the stream-axis persistence).
+- **DO NOT** put differential-dataflow beneath salsa — antigen is ~thousands of nodes, 4–6 orders below where
+  DD pays; revisit only if measured past ~10⁵ nodes.
+
+**Three structural results worth ratifying:**
+1. **Tier ⟺ propagation-height ⟺ GLITCH-FREEDOM.** The strict tier-monotone order IS height-ordered reactive
+   scheduling (FrTime/REScala): each organ reads only strictly-lower tiers → no organ observes a
+   half-updated bundle. Tier-monotonicity is the *glitch-free consistency guarantee* — the prior-art
+   justification for why B2′ must be *strict*.
+2. **B2′ becomes a TRAIT BOUND.** Differential-dataflow's algebra: a diff is a commutative-monoid element;
+   **negation lives in a separate `Abelian` trait.** Enforce the afferent-never-subtracts law as **`R:
+   Monoid` but NOT `R: Abelian`** — the type-level "the afferent side can't form an oscillator" (prior art:
+   positive Z-sets, Datalog-over-semirings). The most elegant compose-win of the survey.
+3. **The residual-flow has a three-altitude referent** — Kalman-innovation (what a residual *is* + the
+   whiteness test) + predictive-coding (the tier hierarchy) + gradient-boosting (the mechanism). Confirms
+   §4's convergence, adds Kalman.
+
+**The novel primitive (honest).** The dual-axis verdict — persistence *up the tier-climb* × persistence
+*over the data-stream* — is unpublished; it is the PRODUCT of multiparameter-persistence (tier × λ, computed
+as fibered 1-param slices for MVP) × **vineyards** (the stream is *time deforming the filtration*, NOT a
+third filtration axis — treating it as one is a category error) × **ZIGZAG persistence** (the *unexplained-
+residual* channel: a residual is *born* when it appears and *dies* when a higher organ *explains it away* —
+so the accumulate-output channel is ordinary append-only persistence, but the **residual channel is
+zigzag**; a real distinction the design should name). Correctness witness: property-tests vs batch-recompute
+(a natural negative control). **Novelty = the composition, not the primitives** (= the project's own
+"novelty = conjunction of axes, not single axis").
