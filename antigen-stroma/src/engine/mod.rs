@@ -45,6 +45,7 @@
 
 pub mod closure;
 pub mod condense;
+pub mod mincut;
 pub mod path_homology;
 pub mod semiring;
 

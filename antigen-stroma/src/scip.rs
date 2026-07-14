@@ -173,7 +173,9 @@ fn node_from_symbol(symbol: &str, tier: crate::read::ResolutionTier) -> crate::n
 /// - [`EdgeReconstruction::Ambiguous`] → each candidate DEGRADED to `Syntactic` tier (a macro-site's
 ///   guessed enclosure can never corroborate up — it is form-only);
 /// - [`EdgeReconstruction::Unreconstructible`] → SKIPPED (no edge; the symbol could not be resolved).
-pub fn edges_from_reconstructions(recons: &[EdgeReconstruction]) -> Vec<crate::base::facts::EdgeFact> {
+pub fn edges_from_reconstructions(
+    recons: &[EdgeReconstruction],
+) -> Vec<crate::base::facts::EdgeFact> {
     use crate::base::facts::EdgeFact;
     use crate::read::ResolutionTier;
 
