@@ -315,7 +315,7 @@ See [`docs/roadmap.md`](https://github.com/antigen-rs/antigen/blob/main/docs/roa
 - [`docs/origin.md`](https://github.com/antigen-rs/antigen/blob/main/docs/origin.md) — the post-mortem narrative that motivated the project
 - [`docs/vision-pitch.md`](https://github.com/antigen-rs/antigen/blob/main/docs/vision-pitch.md) — the full vision; supersedes all narrower framings
 - [`docs/structural-memory.md`](https://github.com/antigen-rs/antigen/blob/main/docs/structural-memory.md) — foundational whitepaper on what structural memory means and why it matters for hybrid human-AI teams
-- [`docs/decisions.md`](https://github.com/antigen-rs/antigen/blob/main/docs/decisions.md) — ratified ADRs and amendments
+- [`docs/decisions.md`](https://github.com/antigen-rs/antigen/blob/main/docs/decisions.md) — the architectural decision record: ratified ADRs and amendments, offered for transparency and for contributors auditing why the project is shaped the way it is
 - [`docs/postures.md`](https://github.com/antigen-rs/antigen/blob/main/docs/postures.md) — architectural postures threaded through the ADRs
 
 **If you're a researcher or practitioner:**
@@ -347,7 +347,7 @@ See [`CONTRIBUTING.md`](CONTRIBUTING.md) for detail.
 
 ## Acknowledgments
 
-The originating insight came from a cleanup expedition on a real-world Rust codebase — a computational-mathematics project. The immune-system architecture framing came from the project lead. The naming, three-verb framing, taxonomy, and design substrate emerged in pre-team scaffolding, then were ratified across a series of design sweeps that produced the ADRs, empirical validations, and the comprehensive vision.
+The originating insight came from cleaning up a real-world Rust codebase — a computational-mathematics project. The immune-system architecture framing came from the project lead. The naming, three-verb framing, taxonomy, and design substrate were developed in early design work and then ratified into the ADRs, with empirical validation, as the architecture took shape.
 
 See [`docs/origin.md`](https://github.com/antigen-rs/antigen/blob/main/docs/origin.md) for the founding incident; [`docs/vision-pitch.md`](https://github.com/antigen-rs/antigen/blob/main/docs/vision-pitch.md) for the full vision.
 

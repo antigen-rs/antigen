@@ -105,5 +105,7 @@ agent-feedback/
 .DS_Store
 Thumbs.db
 
-# Internal design-diary + the FULL ADR ledger (private; public docs/decisions.md is the scrubbed copy)
+# Internal design-diary (private). The full internal ADR ledger — with operational/process
+# detail — lives in the private jbd repo (jbd/decisions-internal.md); the public
+# docs/decisions.md is the contributor-facing decision record kept in 1:1 parity with it.
 docs/internal/

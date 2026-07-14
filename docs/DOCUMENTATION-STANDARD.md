@@ -37,8 +37,8 @@ today learns the current truth — not the history, not the plan.
 > *Present-tense is a **durability property**, not a style choice: a doc with no time-anchor cannot go stale as
 > the code moves around it. That is the whole reason for the rule.*
 
-**P1a — The insidious version-leak (the hard, valuable class).** The *overt* leaks are greppable — role names,
-"the crew," explicit "TODO", a bare "v0.x". The *insidious* ones are camouflaged as legitimate technical prose
+**P1a — The insidious version-leak (the hard, valuable class).** The *overt* leaks are greppable — internal role
+or team references, explicit "TODO", a bare "v0.x". The *insidious* ones are camouflaged as legitimate technical prose
 and slip straight past a keyword scan: *"X refines at the engine epoch"*, *"the SCIP symbol supersedes this"*,
 *"the current approach"*, *"for now"*, *"eventually"*, *"at a later stage"*, *"the 90% case … the real version
 will …"*. They read like ordinary API docs, yet they leak our roadmap, our internal phasing, AND a quiet
@@ -62,8 +62,8 @@ claim from memory or from the changelog.
 **P4 — No leakage (governs source too, not just rendered surfaces).** No reader-visible surface exposes our
 internal state, process, protocol, roles, or authorial anxiety. **This applies to the source itself** — plain
 `//` comments, identifiers, string literals — because people read the code on GitHub, in review, in their editor,
-even when nothing "prints" it. Scrub: role/process references ("co-captain", lens/agent names, "the crew
-decided," "pending review," "the survey found"), internal phasing ("epoch," our wave/expedition structure),
+even when nothing "prints" it. Scrub: role/process references (internal role or agent names, "the team
+decided," "pending review," "the survey found"), internal phasing (project phase names, internal stage structure),
 methodology chatter, hedging, meta-commentary about how it was made. A comment explains *the code*, never *our
 process*.
 
