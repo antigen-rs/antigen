@@ -31,6 +31,10 @@ mutants.out.old/
 # Local-only by design; mirrors campsites/ exclusion above.
 /jbd/
 
+# Internal R&D notebooks / decision-records / deconstructions — moved to the private
+# jbd repo (jbd/research/). NOT intended for the public repo; guard against re-tracking.
+/research/
+
 # Scheduled-task lock dir (project-local Claude harness state; ephemeral)
 .claude/
 
