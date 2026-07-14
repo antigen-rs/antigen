@@ -1,0 +1,26 @@
+[package]
+name = "antigen-stroma-experiment"
+version = "0.1.0"
+edition = "2021"
+publish = false
+
+[[bin]]
+name = "edge-rate"
+path = "src/main.rs"
+
+[[bin]]
+name = "debug-scip"
+path = "src/debug_scip.rs"
+
+[dependencies]
+# SCIP protobuf types — uses protobuf 3.7.2 internally
+scip = "0.9"
+# protobuf re-export for parse_from_bytes
+protobuf = "=3.7.2"
+# syn for syntactic extraction
+syn = { version = "2", features = ["full", "visit"] }
+walkdir = "2"
+tempfile = "3"
+
+[lints]
+workspace = true

@@ -39,6 +39,9 @@ proc-macro2 = { workspace = true }
 quote = { workspace = true }
 
 serde = { workspace = true }
+# SCIP protobuf index parser (the resolved-feeder wiring).
+scip = "0.9"
+protobuf = "=3.7.2"
 
 [dev-dependencies]
 serde_json = { workspace = true }
