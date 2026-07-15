@@ -30,7 +30,7 @@ use std::path::Path;
 use antigen_stroma::base::facts::{EdgeFact, EdgeFacts, EdgeKind};
 use antigen_stroma::db::StromaDb;
 use antigen_stroma::engine::ReachabilityRelation;
-use antigen_stroma::engine::path_homology::TierBarcode;
+use antigen_stroma::engine::path_homology::{TierBarcode, phantom_cycles_from_relation};
 use antigen_stroma::node::id::FqPath;
 use antigen_stroma::node::{CfgSet, IdentityDigest, StromaNodeId};
 use antigen_stroma::read::{ResolutionTier, SnapshotHandle};
@@ -394,4 +394,34 @@ fn main() {
     let bc = TierBarcode::from_relation(&rel);
     print_barcode(&bc);
     print_read(&bc, phantom, union_len);
+    print_phantom_generators(&rel);
+}
+
+/// Name the phantom (syntactic-only) entanglement generators — the F1 generator-level companion to the
+/// dimension barcode: WHICH loops witness the phantom H₁, not just how many. The cokernel dimension can
+/// differ from the naive `H1(G1) − H1(G2)` delta when some resolved cycles die under new G₁ 2-paths.
+fn print_phantom_generators(rel: &ReachabilityRelation) {
+    let gens = phantom_cycles_from_relation(rel);
+    println!("\n== Phantom generators — WHICH loops, not just how many (the F1 pairing) ==");
+    println!(
+        "  cokernel dim = {} independent syntactic-only entanglement loop(s)",
+        gens.len()
+    );
+    let mut by_len: Vec<&Vec<usize>> = gens.iter().collect();
+    by_len.sort_by_key(|c| c.len());
+    println!("  shortest suspect tangles (each closes only via a SCIP-unconfirmed edge):");
+    for cyc in by_len.iter().take(6) {
+        let names: Vec<&str> = cyc
+            .iter()
+            .map(|&i| {
+                let p = rel.node(i).fq_path.path.as_str();
+                p.rsplit(' ').next().unwrap_or(p)
+            })
+            .collect();
+        println!(
+            "    [{} hop] {}",
+            cyc.len().saturating_sub(1),
+            names.join(" → ")
+        );
+    }
 }

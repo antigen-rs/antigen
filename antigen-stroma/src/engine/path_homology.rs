@@ -449,6 +449,289 @@ impl TierBarcode {
     }
 }
 
+// --- generator pairing: WHICH cycles, not just how many (the F1 companion to the dimension barcode) -
+
+/// An incremental exact-ℚ row basis in reduced (Gauss–Jordan) form. [`Self::insert`] reduces a vector
+/// against the current basis; if it does not collapse to zero it is added and `true` returned — i.e.
+/// the vector was linearly independent of everything inserted before it.
+struct LinBasis {
+    /// `(pivot column, reduced row)` — each row has `1` at its pivot column and `0` at every other
+    /// pivot's column, so a single forward pass reduces any vector against the whole basis.
+    pivots: Vec<(usize, Vec<Frac>)>,
+}
+
+impl LinBasis {
+    const fn new() -> Self {
+        Self { pivots: Vec::new() }
+    }
+
+    // The reduce/normalize passes read `prow[c]` while writing `row[c]` across the full row width — the
+    // simultaneous cross-row access an iterator rewrite cannot express, as in `rank_q`.
+    #[allow(clippy::needless_range_loop)]
+    fn insert(&mut self, mut row: Vec<Frac>) -> bool {
+        for (col, prow) in &self.pivots {
+            let coeff = row[*col];
+            if !coeff.is_zero() {
+                for c in 0..row.len() {
+                    row[c] = row[c].sub(coeff.mul(prow[c]));
+                }
+            }
+        }
+        let Some(col) = (0..row.len()).find(|&c| !row[c].is_zero()) else {
+            return false;
+        };
+        let inv = Frac::int(1).div(row[col]);
+        for c in 0..row.len() {
+            row[c] = row[c].mul(inv);
+        }
+        for (_, prow) in &mut self.pivots {
+            let coeff = prow[col];
+            if !coeff.is_zero() {
+                for c in 0..row.len() {
+                    prow[c] = prow[c].sub(coeff.mul(row[c]));
+                }
+            }
+        }
+        self.pivots.push((col, row));
+        true
+    }
+}
+
+/// The ∂₂ boundary rows of the directed graph `edges` (dense `0..n`) in the `edge_index` basis — the
+/// same construction [`path_homology`] folds into its rank, factored out so the generator pass can
+/// quotient by the identical boundary space.
+fn boundary2_rows(
+    edges: &[(usize, usize)],
+    n: usize,
+    edge_index: &BTreeMap<(usize, usize), usize>,
+) -> Vec<Vec<Frac>> {
+    let m = edges.len();
+    let edge_set: BTreeSet<(usize, usize)> = edges.iter().copied().collect();
+    let mut out: Vec<Vec<usize>> = vec![Vec::new(); n];
+    for &(u, v) in edges {
+        out[u].push(v);
+    }
+    let mut rows: Vec<Vec<Frac>> = Vec::new();
+    let mut bad_routes: BTreeMap<(usize, usize), Vec<usize>> = BTreeMap::new();
+    for (i, neigh) in out.iter().enumerate() {
+        for &j in neigh {
+            for &k in &out[j] {
+                if i == k || edge_set.contains(&(i, k)) {
+                    let mut row = vec![Frac::zero(); m];
+                    add_coeff(&mut row, edge_index, (i, j), 1);
+                    add_coeff(&mut row, edge_index, (j, k), 1);
+                    if i != k {
+                        add_coeff(&mut row, edge_index, (i, k), -1);
+                    }
+                    rows.push(row);
+                } else {
+                    bad_routes.entry((i, k)).or_default().push(j);
+                }
+            }
+        }
+    }
+    for (&(i, k), routes) in &bad_routes {
+        let j0 = routes[0];
+        for &jt in &routes[1..] {
+            let mut row = vec![Frac::zero(); m];
+            add_coeff(&mut row, edge_index, (i, jt), 1);
+            add_coeff(&mut row, edge_index, (jt, k), 1);
+            add_coeff(&mut row, edge_index, (i, j0), -1);
+            add_coeff(&mut row, edge_index, (j0, k), -1);
+            rows.push(row);
+        }
+    }
+    rows
+}
+
+/// The phantom (syntactic-only) entanglement generators of a tier-stamped graph.
+///
+/// Representative loops that are H₁ classes of the full graph `G₁` but **not** of the SCIP-confirmed
+/// sub-graph `G₂` — a basis of `coker(H₁(G₂) → H₁(G₁))`. Each loop only closes because of a
+/// `Syntactic`-tier edge, so a confidence-graded reading flags it as unsupported entanglement.
+/// Returned as node sequences in the caller's ORIGINAL indexing, each tracing the loop `u → v → … → u`.
+///
+/// This is the F1 generator-level companion to [`TierBarcode`]: the barcode counts HOW MANY phantom
+/// classes exist; this names WHICH loops witness them. The count here can exceed the naive
+/// `H₁(G₁) − H₁(G₂)` delta when some `G₂` cycles are filled (die) by new `G₁` 2-paths — this is the
+/// honest cokernel dimension.
+#[allow(clippy::too_many_lines)]
+#[must_use]
+pub fn phantom_cycles(tiered_edges: &[(usize, usize, ResolutionTier)]) -> Vec<Vec<usize>> {
+    // 1. One tier per (u,v) — higher wins (SCIP-confirmed ⇒ Resolved); drop self-loops; dense reindex.
+    let mut tier_of: BTreeMap<(usize, usize), ResolutionTier> = BTreeMap::new();
+    for &(u, v, t) in tiered_edges {
+        if u != v {
+            tier_of
+                .entry((u, v))
+                .and_modify(|e| {
+                    if t > *e {
+                        *e = t;
+                    }
+                })
+                .or_insert(t);
+        }
+    }
+    let mut verts: BTreeSet<usize> = BTreeSet::new();
+    for &(u, v) in tier_of.keys() {
+        verts.insert(u);
+        verts.insert(v);
+    }
+    let orig: Vec<usize> = verts.iter().copied().collect();
+    let dense: BTreeMap<usize, usize> = orig.iter().enumerate().map(|(i, &v)| (v, i)).collect();
+    let n = orig.len();
+    if n == 0 {
+        return Vec::new();
+    }
+
+    let edges: Vec<(usize, usize, ResolutionTier)> = tier_of
+        .iter()
+        .map(|(&(u, v), &t)| (dense[&u], dense[&v], t))
+        .collect();
+    let m = edges.len();
+    let plain: Vec<(usize, usize)> = edges.iter().map(|&(u, v, _)| (u, v)).collect();
+    let edge_index: BTreeMap<(usize, usize), usize> =
+        plain.iter().enumerate().map(|(i, &e)| (e, i)).collect();
+
+    // 2. Spanning forest preferring RESOLVED edges (union–find, higher tier first), then a BFS to
+    //    record each node's parent link with the orientation sign of the tree edge.
+    let mut ordered: Vec<usize> = (0..m).collect();
+    ordered.sort_by_key(|&i| std::cmp::Reverse(edges[i].2));
+    let mut uf: Vec<usize> = (0..n).collect();
+    let mut is_tree = vec![false; m];
+    for &i in &ordered {
+        let (u, v, _) = edges[i];
+        let (ru, rv) = (uf_find(&mut uf, u), uf_find(&mut uf, v));
+        if ru != rv {
+            uf[ru] = rv;
+            is_tree[i] = true;
+        }
+    }
+    let mut tadj: Vec<Vec<(usize, usize)>> = vec![Vec::new(); n]; // (neighbor, edge column)
+    for (i, &tree) in is_tree.iter().enumerate() {
+        if tree {
+            let (u, v, _) = edges[i];
+            tadj[u].push((v, i));
+            tadj[v].push((u, i));
+        }
+    }
+    // par[node] = (parent, edge column, sign): sign = +1 if the stored edge points node→parent.
+    let mut par: Vec<Option<(usize, usize, i128)>> = vec![None; n];
+    let mut depth = vec![0usize; n];
+    let mut seen = vec![false; n];
+    for s in 0..n {
+        if seen[s] {
+            continue;
+        }
+        seen[s] = true;
+        let mut queue = vec![s];
+        let mut head = 0;
+        while head < queue.len() {
+            let x = queue[head];
+            head += 1;
+            for &(nb, col) in &tadj[x] {
+                if !seen[nb] {
+                    seen[nb] = true;
+                    depth[nb] = depth[x] + 1;
+                    let sign = if edges[col].0 == nb { 1 } else { -1 };
+                    par[nb] = Some((x, col, sign));
+                    queue.push(nb);
+                }
+            }
+        }
+    }
+
+    // The tree walk a → b: coeff steps (edge column, ±1) and the node sequence [a, …, b], via LCA.
+    let tree_path = |mut a: usize, mut b: usize| -> (Vec<(usize, i128)>, Vec<usize>) {
+        let mut left: Vec<(usize, i128)> = Vec::new();
+        let mut right: Vec<(usize, i128)> = Vec::new();
+        let mut anodes = vec![a];
+        let mut bnodes = vec![b];
+        while depth[a] > depth[b] {
+            let (p, col, s) = par[a].unwrap();
+            left.push((col, s));
+            a = p;
+            anodes.push(a);
+        }
+        while depth[b] > depth[a] {
+            let (p, col, s) = par[b].unwrap();
+            right.push((col, s));
+            b = p;
+            bnodes.push(b);
+        }
+        while a != b {
+            let (pa, ca, sa) = par[a].unwrap();
+            let (pb, cb, sb) = par[b].unwrap();
+            left.push((ca, sa));
+            right.push((cb, sb));
+            a = pa;
+            b = pb;
+            anodes.push(a);
+            bnodes.push(b);
+        }
+        // a == b == LCA. a-side traversed child→parent (+s); b-side reversed = parent→child (−s).
+        let mut steps: Vec<(usize, i128)> = left;
+        for &(col, s) in right.iter().rev() {
+            steps.push((col, -s));
+        }
+        let mut nodes = anodes;
+        for &x in bnodes.iter().rev().skip(1) {
+            nodes.push(x);
+        }
+        (steps, nodes)
+    };
+
+    // 3. Seed the basis with ∂₂(G₁) + the RESOLVED cycle space; a SYNTACTIC non-tree edge whose
+    //    fundamental cycle stays independent is a phantom generator (born only with syntactic edges).
+    let mut basis = LinBasis::new();
+    for row in boundary2_rows(&plain, n, &edge_index) {
+        basis.insert(row);
+    }
+    let fundamental = |i: usize| -> (Vec<Frac>, Vec<usize>) {
+        let (u, v, _) = edges[i];
+        let mut row = vec![Frac::zero(); m];
+        row[i] = row[i].add(Frac::int(1)); // traverse u→v along the non-tree edge
+        let (steps, path_nodes) = tree_path(v, u); // v → u along the tree
+        for (col, coeff) in steps {
+            row[col] = row[col].add(Frac::int(coeff));
+        }
+        let mut loop_nodes = vec![orig[u]];
+        for x in path_nodes {
+            loop_nodes.push(orig[x]);
+        }
+        (row, loop_nodes)
+    };
+    for i in 0..m {
+        if !is_tree[i] && edges[i].2 >= ResolutionTier::Resolved {
+            let (row, _) = fundamental(i);
+            basis.insert(row);
+        }
+    }
+    let mut phantoms: Vec<Vec<usize>> = Vec::new();
+    for i in 0..m {
+        if !is_tree[i] && edges[i].2 < ResolutionTier::Resolved {
+            let (row, loop_nodes) = fundamental(i);
+            if basis.insert(row) {
+                phantoms.push(loop_nodes);
+            }
+        }
+    }
+    phantoms
+}
+
+/// [`phantom_cycles`] read natively from a [`ReachabilityRelation`] (the relation's dense indices are
+/// used directly; map each back with [`ReachabilityRelation::node`]).
+#[must_use]
+pub fn phantom_cycles_from_relation(rel: &ReachabilityRelation) -> Vec<Vec<usize>> {
+    let mut edges: Vec<(usize, usize, ResolutionTier)> = Vec::new();
+    for i in 0..rel.len() {
+        for &(j, tier) in rel.forward_adj(i) {
+            edges.push((i, j, tier));
+        }
+    }
+    phantom_cycles(&edges)
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -618,5 +901,72 @@ mod tests {
         let bc = TierBarcode::from_relation(&rel);
         assert_eq!(bc.h0_barcode(), [1, 2, 1]);
         assert_eq!(bc.h1_barcode(), [1, 1, 2]);
+    }
+
+    // === generator pairing: naming the phantom (syntactic-only) cycles, dogfooded born-red =========
+
+    /// A directed 3-cycle made entirely of `Syntactic` edges → exactly one phantom generator, and the
+    /// loop names its three distinct nodes.
+    #[test]
+    fn phantom_all_syntactic_3cycle_is_one_generator() {
+        let g = phantom_cycles(&[
+            (0, 1, ResolutionTier::Syntactic),
+            (1, 2, ResolutionTier::Syntactic),
+            (2, 0, ResolutionTier::Syntactic),
+        ]);
+        assert_eq!(g.len(), 1, "one syntactic-only entanglement generator");
+        let distinct: BTreeSet<usize> = g[0].iter().copied().collect();
+        assert_eq!(
+            distinct,
+            BTreeSet::from([0, 1, 2]),
+            "the loop names its three nodes"
+        );
+    }
+
+    /// The same 3-cycle at `Resolved` tier → no phantoms: a SCIP-confirmed cycle is genuine
+    /// entanglement, never a syntactic artifact.
+    #[test]
+    fn phantom_all_resolved_3cycle_has_none() {
+        let g = phantom_cycles(&[
+            (0, 1, ResolutionTier::Resolved),
+            (1, 2, ResolutionTier::Resolved),
+            (2, 0, ResolutionTier::Resolved),
+        ]);
+        assert!(g.is_empty(), "a resolved cycle is not a phantom");
+    }
+
+    /// A resolved path `0→1→2` with a `Syntactic` closing edge `2→0` → one phantom: `G₂` (resolved
+    /// only) is an acyclic path (`H₁=0`), `G₁` closes a 3-cycle (`H₁=1`); the closing edge witnesses it.
+    #[test]
+    fn phantom_syntactic_closing_edge_is_a_generator() {
+        let edges = [
+            (0, 1, ResolutionTier::Resolved),
+            (1, 2, ResolutionTier::Resolved),
+            (2, 0, ResolutionTier::Syntactic),
+        ];
+        let bc = TierBarcode::from_tiered_edges(&edges);
+        assert_eq!(bc.g2.h1, 0, "resolved-only is an acyclic path");
+        assert_eq!(bc.g1.h1, 1, "the full graph has the 3-cycle");
+        assert_eq!(
+            phantom_cycles(&edges).len(),
+            1,
+            "the closing syntactic edge is one phantom"
+        );
+    }
+
+    /// A `Syntactic` edge that only COMPLETES a transitive triangle (`0→1→2` resolved, `0→2`
+    /// syntactic) is a path-homology BOUNDARY, not a generator → zero phantoms. Guards against
+    /// miscounting benign chords as entanglement.
+    #[test]
+    fn phantom_syntactic_boundary_chord_is_not_a_generator() {
+        let g = phantom_cycles(&[
+            (0, 1, ResolutionTier::Resolved),
+            (1, 2, ResolutionTier::Resolved),
+            (0, 2, ResolutionTier::Syntactic),
+        ]);
+        assert!(
+            g.is_empty(),
+            "a syntactic transitive chord bounds — not a phantom"
+        );
     }
 }
