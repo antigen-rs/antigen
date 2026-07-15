@@ -125,9 +125,12 @@ pub fn ingest_scip(scip_index_path: &std::path::Path) -> Vec<EdgeReconstruction>
                 continue;
             };
 
-            if src_sym == dst_sym {
-                continue; // skip self-recursion
-            }
+            // Self-recursion (`src == dst`) is KEPT: a fn calling itself is a real call edge, and
+            // dropping it here is a pre-classification the sensor is not entitled to make (hold-all
+            // — sensors hold, organs project). The organs that cannot use a self-loop already drop
+            // it at their own level, where the decision belongs (`path_homology::normalize`). This
+            // also removes a measured asymmetry against the syn feeder, which never dropped them:
+            // it was manufacturing every recursive fn into the syntactic-only residue (10 of 70).
 
             // Generated role: macro-expanded call sites — enclosure may be guessed.
             let is_generated = occ.symbol_roles & (SymbolRole::Generated as i32) != 0;
@@ -176,26 +179,31 @@ fn node_from_symbol(symbol: &str, tier: crate::read::ResolutionTier) -> crate::n
 pub fn edges_from_reconstructions(
     recons: &[EdgeReconstruction],
 ) -> Vec<crate::base::facts::EdgeFact> {
-    use crate::base::facts::EdgeFact;
+    use std::collections::BTreeSet;
+
+    use crate::base::facts::{EdgeFact, WitnessSource};
     use crate::read::ResolutionTier;
 
     let mut edges: Vec<EdgeFact> = Vec::new();
     for recon in recons {
         match recon {
-            EdgeReconstruction::Resolved(edge) => edges.push(EdgeFact {
-                src: node_from_symbol(&edge.src_symbol, ResolutionTier::Resolved),
-                dst: node_from_symbol(&edge.dst_symbol, ResolutionTier::Resolved),
-                kind: edge.kind,
-                tier: ResolutionTier::Resolved,
-            }),
+            EdgeReconstruction::Resolved(edge) => edges.push(EdgeFact::new(
+                node_from_symbol(&edge.src_symbol, ResolutionTier::Resolved),
+                node_from_symbol(&edge.dst_symbol, ResolutionTier::Resolved),
+                edge.kind,
+                BTreeSet::from([WitnessSource::ScipResolved]),
+            )),
             EdgeReconstruction::Ambiguous(candidates) => {
                 for edge in candidates {
-                    edges.push(EdgeFact {
-                        src: node_from_symbol(&edge.src_symbol, ResolutionTier::Syntactic),
-                        dst: node_from_symbol(&edge.dst_symbol, ResolutionTier::Syntactic),
-                        kind: edge.kind,
-                        tier: ResolutionTier::Syntactic, // degraded — never presents-grade
-                    });
+                    // A macro-site's guessed enclosure is form-only: witnessed by SCIP, but as
+                    // `ScipAmbiguous` — so the derived tier degrades to Syntactic by construction
+                    // rather than by a hand-stamp that could drift from the evidence.
+                    edges.push(EdgeFact::new(
+                        node_from_symbol(&edge.src_symbol, ResolutionTier::Syntactic),
+                        node_from_symbol(&edge.dst_symbol, ResolutionTier::Syntactic),
+                        edge.kind,
+                        BTreeSet::from([WitnessSource::ScipAmbiguous]),
+                    ));
                 }
             },
             EdgeReconstruction::Unreconstructible => {}, // no edge — the symbol did not resolve
@@ -248,26 +256,31 @@ fn range_end_line(range: &[i32]) -> i32 {
 ///   guessed enclosure can never corroborate up — it is form-only);
 /// - [`EdgeReconstruction::Unreconstructible`] → SKIPPED (no edge; the symbol could not be resolved).
 pub fn populate_from_reconstructions(db: &mut crate::db::StromaDb, recons: &[EdgeReconstruction]) {
-    use crate::base::facts::EdgeFact;
+    use std::collections::BTreeSet;
+
+    use crate::base::facts::{EdgeFact, WitnessSource};
     use crate::read::ResolutionTier;
 
     let mut edges: Vec<EdgeFact> = Vec::new();
     for recon in recons {
         match recon {
-            EdgeReconstruction::Resolved(edge) => edges.push(EdgeFact {
-                src: node_from_symbol(&edge.src_symbol, ResolutionTier::Resolved),
-                dst: node_from_symbol(&edge.dst_symbol, ResolutionTier::Resolved),
-                kind: edge.kind,
-                tier: ResolutionTier::Resolved,
-            }),
+            EdgeReconstruction::Resolved(edge) => edges.push(EdgeFact::new(
+                node_from_symbol(&edge.src_symbol, ResolutionTier::Resolved),
+                node_from_symbol(&edge.dst_symbol, ResolutionTier::Resolved),
+                edge.kind,
+                BTreeSet::from([WitnessSource::ScipResolved]),
+            )),
             EdgeReconstruction::Ambiguous(candidates) => {
                 for edge in candidates {
-                    edges.push(EdgeFact {
-                        src: node_from_symbol(&edge.src_symbol, ResolutionTier::Syntactic),
-                        dst: node_from_symbol(&edge.dst_symbol, ResolutionTier::Syntactic),
-                        kind: edge.kind,
-                        tier: ResolutionTier::Syntactic, // degraded — never presents-grade
-                    });
+                    // A macro-site's guessed enclosure is form-only: witnessed by SCIP, but as
+                    // `ScipAmbiguous` — so the derived tier degrades to Syntactic by construction
+                    // rather than by a hand-stamp that could drift from the evidence.
+                    edges.push(EdgeFact::new(
+                        node_from_symbol(&edge.src_symbol, ResolutionTier::Syntactic),
+                        node_from_symbol(&edge.dst_symbol, ResolutionTier::Syntactic),
+                        edge.kind,
+                        BTreeSet::from([WitnessSource::ScipAmbiguous]),
+                    ));
                 }
             },
             EdgeReconstruction::Unreconstructible => {}, // no edge — the symbol did not resolve

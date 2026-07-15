@@ -293,7 +293,9 @@ pub fn cut_disconnects(
 /// Build a [`ReachabilityRelation`] from a simple name-pair adjacency list.
 #[cfg(test)]
 pub(crate) fn rel_from_edges(pairs: &[(&str, &str)]) -> ReachabilityRelation {
-    use crate::base::facts::{EdgeFact, EdgeKind};
+    use std::collections::BTreeSet;
+
+    use crate::base::facts::{EdgeFact, EdgeKind, WitnessSource};
     use crate::node::cfg::CfgSet;
     use crate::node::digest::IdentityDigest;
     use crate::node::id::FqPath;
@@ -309,11 +311,13 @@ pub(crate) fn rel_from_edges(pairs: &[(&str, &str)]) -> ReachabilityRelation {
     };
     let edges: Vec<EdgeFact> = pairs
         .iter()
-        .map(|(s, d)| EdgeFact {
-            src: make_node(s),
-            dst: make_node(d),
-            kind: EdgeKind::Call,
-            tier: ResolutionTier::Resolved,
+        .map(|(s, d)| {
+            EdgeFact::new(
+                make_node(s),
+                make_node(d),
+                EdgeKind::Call,
+                BTreeSet::from([WitnessSource::ScipResolved]),
+            )
         })
         .collect();
     ReachabilityRelation::from_edges(&edges)

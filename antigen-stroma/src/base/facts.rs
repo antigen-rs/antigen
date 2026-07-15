@@ -12,6 +12,8 @@
 // salsa-generated `new`/accessors can't carry doc comments — the allow covers only that surface.
 #![allow(missing_docs)]
 
+use std::collections::BTreeSet;
+
 use crate::node::StromaNodeId;
 use crate::node::node::Contract;
 use crate::read::ResolutionTier;
@@ -80,7 +82,81 @@ pub struct EdgeFact {
     /// The tier this edge was reconstructed at — syntactic (syn) or resolved (SCIP). A syntactic
     /// edge can never corroborate up; the lattice-JOIN provenance semiring (ENGINE) raises tier only
     /// across fresh-independent sources.
+    ///
+    /// **A PROJECTION of [`Self::witnesses`], not an independent fact** — derive it with
+    /// [`Self::new`] rather than stamping it, so the tier can never disagree with the evidence.
     pub tier: ResolutionTier,
+    /// **Which instruments witnessed this edge** — the evidence the substrate HOLDS.
+    ///
+    /// The tier above answers *"how well-resolved?"*; this answers *"who saw it, and who didn't?"* —
+    /// and those are different facts. `{Syn, ScipResolved}` (both instruments agree) and
+    /// `{ScipResolved}` (resolution saw what parsing cannot) both project to `Resolved`, yet they
+    /// are **not the same evidence**: the first is corroborated across independent instruments, the
+    /// second is single-sourced. Stamping only the tier annihilates that distinction at the door —
+    /// a pre-classification the substrate is not entitled to make (hold-all: sensors hold, organs
+    /// project).
+    ///
+    /// This does NOT license grade-lifting: *lower-never-corroborates-up* still governs what an
+    /// organ may CONCLUDE from a witness set (see [`crate::read::tier::corroborate`]). The substrate
+    /// holds the pattern; the law constrains the projection.
+    pub witnesses: BTreeSet<WitnessSource>,
+}
+
+/// An instrument that can witness an edge — WHO saw it, kept distinct from how well-resolved it is.
+///
+/// Each instrument has its own blind spots, and the blind spots are the point: `syn` parses every
+/// `cfg` branch but cannot resolve dispatch; a SCIP index resolves dispatch but describes exactly
+/// one configuration. Their disagreement is a signal neither produces alone.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
+pub enum WitnessSource {
+    /// The `syn` syntactic walk — parses EVERY `cfg` branch; cannot resolve dispatch or trait
+    /// methods, and cannot distinguish a call from a tuple-struct/enum-variant construction.
+    Syn,
+    /// SCIP resolved the call cleanly — symbol-level identity, one configuration.
+    ScipResolved,
+    /// SCIP saw the reference but could not trust the enclosure (a `Generated`/macro-expansion
+    /// site) — form-only, never `presents`-grade.
+    ScipAmbiguous,
+}
+
+impl EdgeFact {
+    /// Build an edge from its witness set, **deriving** the tier rather than stamping it.
+    ///
+    /// The projection: any `ScipResolved` witness earns `Resolved`; otherwise the edge is
+    /// `Syntactic` — a macro-generated SCIP enclosure (`ScipAmbiguous`) is form-only and degrades,
+    /// and `syn` alone is syntactic by construction. An empty witness set is `Syntactic` (the floor:
+    /// an edge nobody witnessed cannot claim resolution).
+    #[must_use]
+    pub fn new(
+        src: StromaNodeId,
+        dst: StromaNodeId,
+        kind: EdgeKind,
+        witnesses: BTreeSet<WitnessSource>,
+    ) -> Self {
+        let tier = if witnesses.contains(&WitnessSource::ScipResolved) {
+            ResolutionTier::Resolved
+        } else {
+            ResolutionTier::Syntactic
+        };
+        Self {
+            src,
+            dst,
+            kind,
+            tier,
+            witnesses,
+        }
+    }
+
+    /// Whether independent instruments agree on this edge (`syn` AND SCIP both saw it).
+    ///
+    /// Reported, never auto-promoted: *lower-never-corroborates-up* governs whether an organ may
+    /// lift a grade from this. The substrate only says that it is so.
+    #[must_use]
+    pub fn is_cross_witnessed(&self) -> bool {
+        self.witnesses.contains(&WitnessSource::Syn)
+            && (self.witnesses.contains(&WitnessSource::ScipResolved)
+                || self.witnesses.contains(&WitnessSource::ScipAmbiguous))
+    }
 }
 
 /// The edge-kind vocabulary — an **OPEN registry** (ADR-070 §4.6).
@@ -143,3 +219,78 @@ pub enum EdgeKind {
 //
 // The non-condensed counting path is unconstructible at compile time — the slow cyclic-graph case
 // cannot be written.
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::node::cfg::CfgSet;
+    use crate::node::digest::IdentityDigest;
+    use crate::node::id::FqPath;
+
+    fn node(name: &str) -> StromaNodeId {
+        StromaNodeId {
+            fq_path: FqPath {
+                path: name.to_string(),
+                tier: ResolutionTier::Syntactic,
+            },
+            identity_digest: IdentityDigest::of_tokens(name.as_bytes()),
+            cfg_set: CfgSet::default(),
+        }
+    }
+
+    fn with(w: &[WitnessSource]) -> EdgeFact {
+        EdgeFact::new(
+            node("a"),
+            node("b"),
+            EdgeKind::Call,
+            w.iter().copied().collect(),
+        )
+    }
+
+    /// Both instruments agreeing and SCIP alone PROJECT to the same tier — but the substrate must
+    /// still hold them as DIFFERENT evidence. Stamping only the tier annihilates the distinction at
+    /// the door; that is the pre-classification hold-all forbids.
+    #[test]
+    fn agreement_is_distinguishable_from_single_sourcing() {
+        let both = with(&[WitnessSource::Syn, WitnessSource::ScipResolved]);
+        let scip_only = with(&[WitnessSource::ScipResolved]);
+
+        assert_eq!(both.tier, scip_only.tier, "both project to the same tier");
+        assert_ne!(
+            both.witnesses, scip_only.witnesses,
+            "yet the held evidence differs — the agreement signal survives ingest"
+        );
+        assert!(both.is_cross_witnessed());
+        assert!(!scip_only.is_cross_witnessed());
+    }
+
+    /// The tier is DERIVED from the witness set, never independently stamped: a clean SCIP
+    /// resolution earns `Resolved`; syn alone and a macro-generated (form-only) SCIP enclosure do
+    /// not. `{Syn}` and `{ScipAmbiguous}` share a tier but remain distinct evidence.
+    #[test]
+    fn tier_is_a_projection_of_the_witness_set() {
+        assert_eq!(
+            with(&[WitnessSource::ScipResolved]).tier,
+            ResolutionTier::Resolved
+        );
+        assert_eq!(with(&[WitnessSource::Syn]).tier, ResolutionTier::Syntactic);
+        assert_eq!(
+            with(&[WitnessSource::ScipAmbiguous]).tier,
+            ResolutionTier::Syntactic,
+            "a macro-site's guessed enclosure is form-only — it degrades by construction"
+        );
+        assert_ne!(
+            with(&[WitnessSource::Syn]).witnesses,
+            with(&[WitnessSource::ScipAmbiguous]).witnesses,
+            "same tier, different evidence — held, not collapsed"
+        );
+    }
+
+    /// An edge nobody witnessed cannot claim resolution — the honest floor.
+    #[test]
+    fn an_unwitnessed_edge_sits_at_the_floor() {
+        let e = with(&[]);
+        assert_eq!(e.tier, ResolutionTier::Syntactic);
+        assert!(!e.is_cross_witnessed());
+    }
+}

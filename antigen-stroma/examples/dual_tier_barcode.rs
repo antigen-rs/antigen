@@ -24,10 +24,10 @@
 // A stats-display example: usize→f64 precision loss on graph/edge counts is irrelevant here.
 #![allow(clippy::cast_precision_loss)]
 
-use std::collections::HashSet;
+use std::collections::{BTreeSet, HashSet};
 use std::path::Path;
 
-use antigen_stroma::base::facts::{EdgeFact, EdgeFacts, EdgeKind};
+use antigen_stroma::base::facts::{EdgeFact, EdgeFacts, EdgeKind, WitnessSource};
 use antigen_stroma::db::StromaDb;
 use antigen_stroma::engine::ReachabilityRelation;
 use antigen_stroma::engine::path_homology::{TierBarcode, phantom_cycles_from_relation};
@@ -257,17 +257,22 @@ fn build_tier_edges(
     let union: HashSet<&(String, String)> = syn_pairs.union(scip_pairs).collect();
     let mut edges: Vec<EdgeFact> = Vec::with_capacity(union.len());
     for pair in &union {
-        let tier = if scip_pairs.contains(*pair) {
-            ResolutionTier::Resolved
-        } else {
-            ResolutionTier::Syntactic
-        };
-        edges.push(EdgeFact {
-            src: node_from_name(&pair.0),
-            dst: node_from_name(&pair.1),
-            kind: EdgeKind::Call,
-            tier,
-        });
+        // HOLD the witness set — who saw it — rather than pre-collapsing it to a tier at the door.
+        // `{Syn, ScipResolved}` (both instruments agree) and `{ScipResolved}` (resolution saw what
+        // parsing cannot) both PROJECT to Resolved, but they are not the same evidence.
+        let mut w = BTreeSet::new();
+        if syn_pairs.contains(*pair) {
+            w.insert(WitnessSource::Syn);
+        }
+        if scip_pairs.contains(*pair) {
+            w.insert(WitnessSource::ScipResolved);
+        }
+        edges.push(EdgeFact::new(
+            node_from_name(&pair.0),
+            node_from_name(&pair.1),
+            EdgeKind::Call,
+            w,
+        ));
     }
     let resolved_edges = union.len() - phantom;
     println!("== Tier-stamped union fed to the stroma ==");

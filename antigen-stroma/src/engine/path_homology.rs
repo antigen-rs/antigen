@@ -862,7 +862,7 @@ mod tests {
     fn barcode_from_reachability_relation() {
         use ResolutionTier::{Resolved, Syntactic, T3Mir};
 
-        use crate::base::facts::{EdgeFact, EdgeKind};
+        use crate::base::facts::{EdgeFact, EdgeKind, WitnessSource};
         use crate::node::StromaNodeId;
         use crate::node::cfg::CfgSet;
         use crate::node::digest::IdentityDigest;
@@ -879,12 +879,15 @@ mod tests {
             }
         }
         fn edge(s: &str, d: &str, tier: ResolutionTier) -> EdgeFact {
-            EdgeFact {
-                src: node(s),
-                dst: node(d),
-                kind: EdgeKind::Call,
-                tier,
-            }
+            // The witness that PROJECTS to the tier this test wants: Resolved/T3Mir come from a
+            // clean SCIP resolution, Syntactic from the syn walk. Tier is derived, never stamped.
+            let w = match tier {
+                ResolutionTier::Syntactic => WitnessSource::Syn,
+                ResolutionTier::Resolved | ResolutionTier::T3Mir => WitnessSource::ScipResolved,
+            };
+            let mut e = EdgeFact::new(node(s), node(d), EdgeKind::Call, BTreeSet::from([w]));
+            e.tier = tier; // T3Mir has no witness of its own yet — the proof-tier feeder is unbuilt
+            e
         }
 
         // Same shape as the worked example, but the relation assigns its own dense indices by first

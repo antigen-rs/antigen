@@ -9,9 +9,9 @@
 //!                                   +--------------Syntactic-----------+
 //! ```
 
-use std::collections::HashSet;
+use std::collections::{BTreeSet, HashSet};
 
-use antigen_stroma::base::facts::{EdgeFact, EdgeFacts, EdgeKind};
+use antigen_stroma::base::facts::{EdgeFact, EdgeFacts, EdgeKind, WitnessSource};
 use antigen_stroma::db::StromaDb;
 use antigen_stroma::engine::{
     Blast, Conductance, Detection, ReachabilityRelation, condense, run_closure, run_condensed,
@@ -35,12 +35,14 @@ fn node(name: &str) -> StromaNodeId {
 }
 
 fn edge(src: &str, dst: &str, tier: ResolutionTier) -> EdgeFact {
-    EdgeFact {
-        src: node(src),
-        dst: node(dst),
-        kind: EdgeKind::Call,
-        tier,
-    }
+    // The witness that PROJECTS to the tier this fixture wants — tier is derived, never stamped.
+    let w = match tier {
+        ResolutionTier::Syntactic => WitnessSource::Syn,
+        ResolutionTier::Resolved | ResolutionTier::T3Mir => WitnessSource::ScipResolved,
+    };
+    let mut e = EdgeFact::new(node(src), node(dst), EdgeKind::Call, BTreeSet::from([w]));
+    e.tier = tier; // T3Mir has no witness of its own yet — the proof-tier feeder is unbuilt
+    e
 }
 
 fn graph_edges() -> Vec<EdgeFact> {
