@@ -334,7 +334,7 @@ fn main() {
             continue;
         };
         let e = name_map.entry(n.to_string()).or_default();
-        if let Some(k) = si.kind.enum_value().ok() {
+        if let Ok(k) = si.kind.enum_value() {
             e.kinds.insert(k);
         }
         e.symbols.insert(si.symbol.clone());
