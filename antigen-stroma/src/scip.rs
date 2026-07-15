@@ -212,6 +212,62 @@ pub fn edges_from_reconstructions(
     edges
 }
 
+/// Ingest the SCIP index's **symbol table** — what the indexer says ABOUT each symbol.
+///
+/// Reads both feeders SCIP provides (`Document.symbols` + `Index.external_symbols`), holding each
+/// observation in SCIP's own vocabulary ([`crate::base::facts::ScipKind`]) rather than mapping it
+/// into antigen's. This is the surface that lets a second instrument correct the first's structural
+/// blind spot: `syn` cannot distinguish `Some(x)` (an `EnumMember` construction) from a function
+/// call, because they are syntactically identical — SCIP knows.
+///
+/// Held, not enforced: nothing here filters an edge. The substrate records what SCIP observed; an
+/// organ decides what an edge into a constructor means.
+///
+/// ## Instrument scope (measured, `rust-analyzer 1.96 scip`, antigen's own index)
+///
+/// - `kind` is populated for **100%** of symbols (19141 of 19141) — this observation is real.
+/// - `relationships` is populated for **0%** — the trait→impl dispatch map is ABSENT from this
+///   index, so [`crate::base::facts::SymbolFact::is_implementation_of`] arrives empty. That is the
+///   instrument's silence, NOT evidence that no implementation exists.
+/// - std/external constructors (`Option#Some#`, `Result#Ok#`) are REFERENCED by occurrences but
+///   never DESCRIBED here — so a symbol's absence from this table means "this indexer did not
+///   describe it", never "it does not exist".
+#[must_use]
+pub fn ingest_scip_symbols(
+    scip_index_path: &std::path::Path,
+) -> Vec<crate::base::facts::SymbolFact> {
+    use protobuf::Message;
+    use scip::types::Index;
+
+    use crate::base::facts::{ScipKind, SymbolFact};
+
+    let Ok(bytes) = std::fs::read(scip_index_path) else {
+        return Vec::new();
+    };
+    let Ok(index) = Index::parse_from_bytes(&bytes) else {
+        return Vec::new();
+    };
+
+    index
+        .documents
+        .iter()
+        .flat_map(|d| d.symbols.iter())
+        .chain(index.external_symbols.iter())
+        .filter(|si| !si.symbol.is_empty() && !si.symbol.starts_with("local "))
+        .map(|si| SymbolFact {
+            symbol: si.symbol.clone(),
+            kind: ScipKind::from_raw(si.kind.value()),
+            documentation: si.documentation.clone(),
+            is_implementation_of: si
+                .relationships
+                .iter()
+                .filter(|r| r.is_implementation)
+                .map(|r| r.symbol.clone())
+                .collect(),
+        })
+        .collect()
+}
+
 // ── Internal helpers ──────────────────────────────────────────────────────────
 
 /// Return true if `symbol` is a function-kind symbol in SCIP's Rust encoding.

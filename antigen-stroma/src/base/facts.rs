@@ -41,6 +41,125 @@ pub struct ContractFacts {
     pub contracts: Vec<ContractFact>,
 }
 
+/// The SCIP symbol relation — **what the SCIP indexer says ABOUT a symbol**, in SCIP's own
+/// vocabulary.
+///
+/// Its own relation rather than fields on [`NodeFact`], for two reasons the substrate must not
+/// paper over:
+/// - **[`NodeFact`] is a syn-sourced tuple** — it carries an `ItemTarget` kind and a measured
+///   `shape_digest`. SCIP measures neither, so a SCIP-sourced `NodeFact` would have to FABRICATE
+///   them.
+/// - **The vocabularies do not nest.** SCIP separates `EnumMember` from `Struct`, and `TraitMethod`
+///   from `Method`; `ItemTarget` carries neither distinction. Mapping SCIP's kind into it would
+///   discard precisely the evidence that makes a second instrument worth having (`syn` structurally
+///   cannot tell `Some(x)` from a call; SCIP knows it is an `EnumMember`).
+///
+/// So each instrument's observations are held in that instrument's own terms, and any organ that
+/// wants a unified answer JOINS them — the join is a projection, and projections belong to organs.
+#[salsa::input]
+pub struct SymbolFacts {
+    /// What SCIP observed about each symbol it describes, in this snapshot.
+    pub symbols: Vec<SymbolFact>,
+}
+
+/// One SCIP symbol observation — its identity, SCIP's classification of it, and its docs.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct SymbolFact {
+    /// The raw SCIP symbol string — the instrument's own identity for this thing, kept verbatim so
+    /// a join can be re-derived at any fidelity (bare-name today, per-symbol later).
+    pub symbol: String,
+    /// SCIP's classification, un-mapped ([`ScipKind`]).
+    pub kind: ScipKind,
+    /// The doc-comment text SCIP carries for the symbol (empty when it carries none).
+    pub documentation: Vec<String>,
+    /// Symbols this one is an implementation OF (`Relationship.is_implementation`) — the trait→impl
+    /// dispatch map. MEASURED EMPTY in a `rust-analyzer 1.96 scip` index (0 of 19141 symbols carry
+    /// any relationship), so the slot is held open rather than assumed: an absent relationship is
+    /// this instrument's silence, never evidence that no implementation exists.
+    pub is_implementation_of: Vec<String>,
+}
+
+/// SCIP's own symbol classification — held UN-MAPPED (never collapsed into `ItemTarget`).
+///
+/// `Other` keeps unrecognized kinds addressable instead of silently dropping them: a kind we have
+/// no name for is still an observation, and discarding it would be a pre-classification.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
+pub enum ScipKind {
+    /// A free function.
+    Function,
+    /// An inherent method.
+    Method,
+    /// A trait method (declared on a trait).
+    TraitMethod,
+    /// An enum variant — a `Foo::Bar(x)` "call" is a CONSTRUCTION, not a call. The distinction
+    /// `syn` structurally cannot make.
+    EnumMember,
+    /// A struct — a tuple-struct "call" is likewise a construction.
+    Struct,
+    /// An enum type.
+    Enum,
+    /// A trait type.
+    Trait,
+    /// A macro.
+    Macro,
+    /// A struct/enum field.
+    Field,
+    /// A generic type parameter.
+    TypeParameter,
+    /// A variable / binding.
+    Variable,
+    /// A static/associated method (no receiver).
+    StaticMethod,
+    /// A module.
+    Module,
+    /// A `const` item.
+    Constant,
+    /// A type alias.
+    TypeAlias,
+    /// An attribute (proc-macro / derive).
+    Attribute,
+    /// A kind this vocabulary does not name yet — held with its raw SCIP discriminant.
+    ///
+    /// The escape hatch is deliberate: a kind we have no name for is still an OBSERVATION, and
+    /// dropping it would be a pre-classification. It stays addressable until someone names it.
+    Other(i32),
+}
+
+impl ScipKind {
+    /// Decode a raw SCIP `symbol_information::Kind` discriminant, keeping unknowns addressable.
+    #[must_use]
+    pub const fn from_raw(raw: i32) -> Self {
+        match raw {
+            4 => Self::Attribute,
+            8 => Self::Constant,
+            11 => Self::Enum,
+            12 => Self::EnumMember,
+            15 => Self::Field,
+            17 => Self::Function,
+            25 => Self::Macro,
+            26 => Self::Method,
+            29 => Self::Module,
+            49 => Self::Struct,
+            53 => Self::Trait,
+            55 => Self::TypeAlias,
+            58 => Self::TypeParameter,
+            61 => Self::Variable,
+            70 => Self::TraitMethod,
+            80 => Self::StaticMethod,
+            other => Self::Other(other),
+        }
+    }
+
+    /// Whether a "call" to this symbol is really a CONSTRUCTION (enum variant / tuple struct).
+    ///
+    /// Reported, never enforced at ingest: the substrate holds the observation, and an organ decides
+    /// what to do with an edge whose destination is a constructor.
+    #[must_use]
+    pub const fn is_constructor(self) -> bool {
+        matches!(self, Self::EnumMember | Self::Struct | Self::Enum)
+    }
+}
+
 /// One node tuple in the relation — the node's identity + its kind + the two digests.
 ///
 /// The plain value-tuple form the closure iterates, distinct from the salsa [`crate::node::node::Node`]
@@ -292,5 +411,41 @@ mod tests {
         let e = with(&[]);
         assert_eq!(e.tier, ResolutionTier::Syntactic);
         assert!(!e.is_cross_witnessed());
+    }
+
+    /// SCIP's kind carries distinctions `ItemTarget` structurally cannot express — which is the
+    /// whole reason it is held un-mapped. If these ever collapsed onto one variant, the second
+    /// instrument would stop being worth having.
+    #[test]
+    fn scip_kind_keeps_distinctions_item_target_cannot_express() {
+        // EnumMember vs Struct: BOTH are constructions, but they are not the same thing.
+        assert_ne!(ScipKind::from_raw(12), ScipKind::from_raw(49));
+        // Method vs TraitMethod: dispatch-relevant, and `ItemTarget::Fn` erases it.
+        assert_ne!(ScipKind::from_raw(26), ScipKind::from_raw(70));
+        assert_eq!(ScipKind::from_raw(17), ScipKind::Function);
+    }
+
+    /// A "call" to a constructor is a CONSTRUCTION — the distinction `syn` structurally cannot make
+    /// (`Some(x)` and `foo(x)` are the same shape), and the one SCIP hands us for free.
+    #[test]
+    fn constructors_are_recognizable_where_syn_is_blind() {
+        assert!(
+            ScipKind::EnumMember.is_constructor(),
+            "Some(x) is a construction"
+        );
+        assert!(
+            ScipKind::Struct.is_constructor(),
+            "a tuple-struct call constructs"
+        );
+        assert!(!ScipKind::Function.is_constructor());
+        assert!(!ScipKind::Method.is_constructor());
+    }
+
+    /// An unrecognized kind stays ADDRESSABLE rather than being dropped: a kind we cannot name is
+    /// still an observation, and discarding it would be a pre-classification (hold-all).
+    #[test]
+    fn an_unknown_kind_is_held_not_dropped() {
+        assert_eq!(ScipKind::from_raw(9999), ScipKind::Other(9999));
+        assert_ne!(ScipKind::from_raw(9999), ScipKind::from_raw(9998));
     }
 }
