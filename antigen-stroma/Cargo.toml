@@ -46,6 +46,9 @@ protobuf = "=3.7.2"
 [dev-dependencies]
 serde_json = { workspace = true }
 tempfile = { workspace = true }
+# examples/dual_tier_barcode.rs: walks the workspace crate src/ dirs for the syntactic (syn)
+# call-edge feeder — dev-only so walkdir stays out of the core lib's dependency surface.
+walkdir = { workspace = true }
 # Compile-state born-red harness (trybuild): the C3 "law encoded in types, not runtime" ATKs —
 # TIER-CAP (syntactic cannot construct presents) + TORN-READ (publish-while-reading is a borrow
 # error) assert the unsound interleaving does NOT compile. Same harness as antigen-macros.

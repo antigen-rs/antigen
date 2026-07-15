@@ -106,7 +106,9 @@ fn main() {
         "  G1 (all, +Syntactic):  vertices={:5} edges={:6} H0={:4} H1={}",
         bc.g1.vertices, bc.g1.edges, bc.g1.h0, bc.g1.h1
     );
-    println!("  → H1 growth G3→G1 = entanglement cycles that exist only through lower-fidelity edges\n");
+    println!(
+        "  → H1 growth G3→G1 = entanglement cycles that exist only through lower-fidelity edges\n"
+    );
 
     // 4. Min vertex-cut — the smallest set of nodes whose removal severs a real path.
     let mut blast_of = vec![0usize; rel.len()];
