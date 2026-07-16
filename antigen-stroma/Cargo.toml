@@ -56,3 +56,9 @@ trybuild = { workspace = true }
 # syn: the end-to-end DIGEST-STRIP ATK parses real items (#[presents] fn …) to a syn::Item to drive
 # IdentityDigest::of_item — proving tamper-evidence on the load-bearing/pure attr partition (§4.3).
 syn = { workspace = true }
+# examples/store_spike.rs (SPIKE, jbd/research/decisions/layered-derivation-store.md): project the
+# stroma into an RDF quad store to find gaps before committing. sophia = backend-agnostic RDF/SPARQL
+# model (Term/Graph/Dataset traits + in-memory dataset + N-Quads/TriG serde); redb = pure-Rust
+# embedded KV store (persistence, no RocksDB/C++). Dev-only — never reaches antigen/cargo-antigen.
+sophia = "0.10"
+redb = "2"
