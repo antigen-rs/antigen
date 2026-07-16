@@ -39,7 +39,7 @@ pub struct ResolvedEdge {
 /// ## Call vs. construct
 ///
 /// A reference occurrence is accepted when its symbol is either a **function** symbol
-/// ([`is_fn_symbol`] — the `).`-suffix Method-descriptor shape) or a **constructor** symbol per
+/// (`is_fn_symbol` — the `).`-suffix Method-descriptor shape) or a **constructor** symbol per
 /// SCIP's own symbol table (enum-variant / tuple-struct / enum —
 /// [`crate::base::facts::ScipKind::is_constructor`]).
 /// `syn` cannot make this distinction (`Some(x)` and `foo(x)` are syntactically identical); SCIP's
