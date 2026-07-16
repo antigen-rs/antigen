@@ -32,8 +32,23 @@ pub struct ResolvedEdge {
 
 /// Ingest a SCIP index file into a `Vec<EdgeReconstruction>`.
 ///
-/// Parses the SCIP protobuf at `scip_index_path` and reconstructs call edges by finding
-/// function-symbol reference occurrences and their enclosing function definition occurrences.
+/// Parses the SCIP protobuf at `scip_index_path` and reconstructs call AND construction edges by
+/// finding function-symbol OR constructor-symbol reference occurrences and their enclosing
+/// function definition occurrences.
+///
+/// ## Call vs. construct
+///
+/// A reference occurrence is accepted when its symbol is either a **function** symbol
+/// ([`is_fn_symbol`] — the `).`-suffix Method-descriptor shape) or a **constructor** symbol per
+/// SCIP's own symbol table (enum-variant / tuple-struct / enum —
+/// [`crate::base::facts::ScipKind::is_constructor`]).
+/// `syn` cannot make this distinction (`Some(x)` and `foo(x)` are syntactically identical); SCIP's
+/// symbol-kind table can, so the emitted edge is kind-stamped accordingly:
+/// [`crate::base::facts::EdgeKind::Construct`] for a constructor callee,
+/// [`crate::base::facts::EdgeKind::Call`] otherwise. The symbol→kind lookup is built once per
+/// index from the same two feeders [`ingest_scip_symbols`] reads (`Document.symbols` +
+/// `Index.external_symbols`) — mirrored here rather than shared so a single parse of the bytes
+/// serves both the reference loop and the kind lookup.
 ///
 /// ## Tier-honesty
 ///
@@ -64,8 +79,12 @@ pub struct ResolvedEdge {
 /// it that way attributes every edge to the callee itself, which the `src == dst` self-recursion
 /// guard then silently drops.
 pub fn ingest_scip(scip_index_path: &std::path::Path) -> Vec<EdgeReconstruction> {
+    use std::collections::HashMap;
+
     use protobuf::Message;
     use scip::types::{Index, SymbolRole};
+
+    use crate::base::facts::ScipKind;
 
     let Ok(bytes) = std::fs::read(scip_index_path) else {
         return Vec::new();
@@ -73,6 +92,20 @@ pub fn ingest_scip(scip_index_path: &std::path::Path) -> Vec<EdgeReconstruction>
     let Ok(index) = Index::parse_from_bytes(&bytes) else {
         return Vec::new();
     };
+
+    // Symbol -> SCIP kind, mirroring `ingest_scip_symbols`'s two feeders (`Document.symbols` +
+    // `Index.external_symbols`) — built once here rather than shared so a single parse of the
+    // bytes serves both this lookup and the reference loop below. This is the instrument that
+    // tells a construction (`Some(x)`) apart from a call (`foo(x)`): `syn` sees the same shape for
+    // both, `is_fn_symbol`'s `).`-suffix gate alone cannot see a constructor at all.
+    let symbol_kind: HashMap<&str, ScipKind> = index
+        .documents
+        .iter()
+        .flat_map(|d| d.symbols.iter())
+        .chain(index.external_symbols.iter())
+        .filter(|si| !si.symbol.is_empty() && !si.symbol.starts_with("local "))
+        .map(|si| (si.symbol.as_str(), ScipKind::from_raw(si.kind.value())))
+        .collect();
 
     let mut recons = Vec::new();
 
@@ -103,7 +136,16 @@ pub fn ingest_scip(scip_index_path: &std::path::Path) -> Vec<EdgeReconstruction>
             if is_def || occ.symbol.is_empty() || occ.symbol.starts_with("local ") {
                 continue;
             }
-            if !is_fn_symbol(&occ.symbol) {
+
+            // Accept a fn-symbol reference (the call case, unchanged) OR a constructor-symbol
+            // reference (enum-variant / tuple-struct / enum) — the case `is_fn_symbol` alone
+            // drops. `ctor_kind` is `Some` only when SCIP's own symbol table classifies this
+            // symbol as a constructor; it is what drives the edge-kind below, never guessed.
+            let ctor_kind = symbol_kind
+                .get(occ.symbol.as_str())
+                .copied()
+                .filter(|k| k.is_constructor());
+            if !is_fn_symbol(&occ.symbol) && ctor_kind.is_none() {
                 continue;
             }
 
@@ -134,10 +176,17 @@ pub fn ingest_scip(scip_index_path: &std::path::Path) -> Vec<EdgeReconstruction>
 
             // Generated role: macro-expanded call sites — enclosure may be guessed.
             let is_generated = occ.symbol_roles & (SymbolRole::Generated as i32) != 0;
+            // The callee's SCIP kind drives the edge-kind — a constructor callee makes this a
+            // `Construct` edge (a build, not an invocation); everything else is a `Call`.
+            let edge_kind = if ctor_kind.is_some() {
+                crate::base::facts::EdgeKind::Construct
+            } else {
+                crate::base::facts::EdgeKind::Call
+            };
             let edge = ResolvedEdge {
                 src_symbol: src_sym.to_string(),
                 dst_symbol: dst_sym.to_string(),
-                kind: crate::base::facts::EdgeKind::Call,
+                kind: edge_kind,
             };
             if is_generated {
                 recons.push(EdgeReconstruction::Ambiguous(vec![edge]));
@@ -345,4 +394,165 @@ pub fn populate_from_reconstructions(db: &mut crate::db::StromaDb, recons: &[Edg
 
     let edge_facts = crate::base::facts::EdgeFacts::new(&*db, edges);
     db.set_edge_facts(edge_facts);
+}
+
+#[cfg(test)]
+mod tests {
+    //! `ingest_scip` unit tests — construction vs. call is CALLEE-KIND-DRIVEN, not
+    //! symbol-shape-driven.
+    //!
+    //! The SCIP index is built entirely in memory (the `scip` crate's generated types are plain,
+    //! `Default`-deriving structs) and round-tripped through the real protobuf wire encoding via a
+    //! temp file, so these exercise `ingest_scip`'s actual parse path rather than a bypass.
+
+    use protobuf::EnumOrUnknown;
+    use scip::types::symbol_information::Kind;
+    use scip::types::{Document, Index, Occurrence, SymbolInformation, SymbolRole};
+
+    use super::*;
+    use crate::base::facts::EdgeKind;
+
+    const CALLER: &str = "test-pkg cargo test_crate 0.1.0 caller_fn().";
+    const CALLEE_FN: &str = "test-pkg cargo test_crate 0.1.0 callee_fn().";
+    const CALLEE_CTOR: &str = "test-pkg cargo test_crate 0.1.0 MyEnum#Some.";
+
+    /// The DEF occurrence for `CALLER` — body span lines 0..=20, the encloser every reference below
+    /// attaches to.
+    fn caller_def() -> Occurrence {
+        Occurrence {
+            symbol: CALLER.to_string(),
+            symbol_roles: SymbolRole::Definition as i32,
+            range: vec![0, 0, 3],
+            enclosing_range: vec![0, 0, 20, 1],
+            ..Default::default()
+        }
+    }
+
+    /// A plain (non-definition, non-generated) reference occurrence at `line` targeting `symbol`.
+    fn reference(symbol: &str, line: i32) -> Occurrence {
+        Occurrence {
+            symbol: symbol.to_string(),
+            symbol_roles: 0,
+            range: vec![line, 4, 10],
+            ..Default::default()
+        }
+    }
+
+    fn symbol_info(symbol: &str, kind: Kind) -> SymbolInformation {
+        SymbolInformation {
+            symbol: symbol.to_string(),
+            kind: EnumOrUnknown::new(kind),
+            ..Default::default()
+        }
+    }
+
+    /// Serialize `index` to a real `.scip` protobuf file and run it through `ingest_scip` — the
+    /// actual parse path, not a bypass.
+    fn ingest(index: Index) -> Vec<EdgeReconstruction> {
+        let tmp = tempfile::NamedTempFile::new().expect("temp file");
+        scip::write_message_to_file(tmp.path(), index).expect("write scip index");
+        ingest_scip(tmp.path())
+    }
+
+    fn only_resolved(recons: &[EdgeReconstruction]) -> Vec<&ResolvedEdge> {
+        recons
+            .iter()
+            .filter_map(|r| match r {
+                EdgeReconstruction::Resolved(e) => Some(e),
+                _ => None,
+            })
+            .collect()
+    }
+
+    /// A fn that CONSTRUCTS an enum variant yields a `Construct` edge, never a `Call` — the exact
+    /// case `is_fn_symbol` alone drops entirely (the proven finding this change fixes: 11525
+    /// reconstructable constructor references, previously discarded at the gate).
+    #[test]
+    fn constructs_enum_variant_yields_construct_edge_not_call() {
+        let index = Index {
+            documents: vec![Document {
+                occurrences: vec![caller_def(), reference(CALLEE_CTOR, 5)],
+                symbols: vec![symbol_info(CALLEE_CTOR, Kind::EnumMember)],
+                ..Default::default()
+            }],
+            ..Default::default()
+        };
+
+        let recons = ingest(index);
+        let resolved = only_resolved(&recons);
+        assert_eq!(
+            resolved.len(),
+            1,
+            "exactly one constructor reference to resolve"
+        );
+        let edge = resolved[0];
+        assert_eq!(edge.src_symbol, CALLER);
+        assert_eq!(edge.dst_symbol, CALLEE_CTOR);
+        assert_eq!(
+            edge.kind,
+            EdgeKind::Construct,
+            "a construction must be Construct-kinded, not silently folded into Call"
+        );
+    }
+
+    /// A fn that CALLS another fn still yields a `Call` edge — the pre-existing behavior must not
+    /// regress now that a second acceptance path (constructor symbols) exists alongside it.
+    #[test]
+    fn calls_a_fn_still_yields_call_edge() {
+        let index = Index {
+            documents: vec![Document {
+                occurrences: vec![caller_def(), reference(CALLEE_FN, 5)],
+                symbols: vec![symbol_info(CALLEE_FN, Kind::Function)],
+                ..Default::default()
+            }],
+            ..Default::default()
+        };
+
+        let recons = ingest(index);
+        let resolved = only_resolved(&recons);
+        assert_eq!(resolved.len(), 1);
+        let edge = resolved[0];
+        assert_eq!(edge.src_symbol, CALLER);
+        assert_eq!(edge.dst_symbol, CALLEE_FN);
+        assert_eq!(edge.kind, EdgeKind::Call);
+    }
+
+    /// The CALLEE's kind drives the edge-kind, per-reference — not a document-wide or caller-wide
+    /// mode. One caller, one call, one construction: the two references from the SAME body resolve
+    /// to DIFFERENT edge-kinds.
+    #[test]
+    fn callee_kind_drives_edge_kind_per_reference() {
+        let index = Index {
+            documents: vec![Document {
+                occurrences: vec![
+                    caller_def(),
+                    reference(CALLEE_FN, 5),
+                    reference(CALLEE_CTOR, 8),
+                ],
+                symbols: vec![
+                    symbol_info(CALLEE_FN, Kind::Function),
+                    symbol_info(CALLEE_CTOR, Kind::EnumMember),
+                ],
+                ..Default::default()
+            }],
+            ..Default::default()
+        };
+
+        let recons = ingest(index);
+        let resolved = only_resolved(&recons);
+        assert_eq!(
+            resolved.len(),
+            2,
+            "both the call and the construction must resolve"
+        );
+        let kind_of = |sym: &str| {
+            resolved
+                .iter()
+                .find(|e| e.dst_symbol == sym)
+                .unwrap_or_else(|| panic!("no resolved edge for {sym}"))
+                .kind
+        };
+        assert_eq!(kind_of(CALLEE_FN), EdgeKind::Call);
+        assert_eq!(kind_of(CALLEE_CTOR), EdgeKind::Construct);
+    }
 }

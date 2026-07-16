@@ -293,6 +293,13 @@ pub enum EdgeKind {
     /// A call edge: `src` invokes `dst`. Syntactic feeder (name-edge, `dread`) refined by SCIP
     /// (enclosure-reconstructed, `resolved`). The primary detection relation.
     Call,
+    /// A construction edge: `src` BUILDS `dst` (`Foo(x)`, `Bar { .. }`, `Some(x)`) — a real
+    /// structural who-builds-what coupling, but NOT a call: `dst` is a data-model member
+    /// (enum-variant / tuple-struct / enum), never a callable. Distinct from [`Self::Call`] so a
+    /// read can select for or exclude it (`syn` sees the same shape as a call and cannot tell the
+    /// two apart; SCIP's [`crate::base::facts::ScipKind::is_constructor`] is what supplies the
+    /// distinction — see [`crate::scip::ingest_scip`]).
+    Construct,
     /// An import / `use` edge: `src`'s module brings `dst` into scope.
     Import,
     /// A type-use edge: `src` mentions `dst` in a type position (field, param, return, bound).

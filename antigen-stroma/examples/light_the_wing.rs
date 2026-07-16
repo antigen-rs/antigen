@@ -10,6 +10,7 @@
 
 use std::path::Path;
 
+use antigen_stroma::base::facts::{EdgeFact, EdgeKind};
 use antigen_stroma::db::StromaDb;
 use antigen_stroma::engine::ReachabilityRelation;
 use antigen_stroma::engine::mincut::min_vertex_cut;
@@ -24,6 +25,61 @@ use antigen_stroma::scip::{ingest_scip, populate_from_reconstructions};
 fn short(id: &StromaNodeId) -> &str {
     let p = id.fq_path.path.as_str();
     p.rsplit(' ').next().unwrap_or(p)
+}
+
+/// Print the Call-vs-Construct split, the top-10 most-constructed types, and the node-count delta
+/// (split out of `main` to stay under the line budget — the pattern `dual_tier_barcode.rs` uses).
+///
+/// Every `Construct` edge here is a reference `ingest_scip`'s old `is_fn_symbol`-only gate used to
+/// DROP entirely (SCIP's own symbol-kind table is what recovers them; `syn` cannot tell `Some(x)`
+/// from a call).
+fn print_construct_stats(edges: &[EdgeFact], node_count: usize) {
+    let construct_count = edges
+        .iter()
+        .filter(|e| e.kind == EdgeKind::Construct)
+        .count();
+    let call_count = edges.iter().filter(|e| e.kind == EdgeKind::Call).count();
+    println!("== Call vs. Construct (the recovered construction edges) ==");
+    println!(
+        "  Call:      {call_count:6}\n  Construct: {construct_count:6}  ({:.1}% of all edges)\n  \
+         [pre-fill baseline would have been {} edges, Call-only]",
+        100.0 * construct_count as f64 / edges.len() as f64,
+        edges.len() - construct_count,
+    );
+
+    let mut ctor_in_degree: std::collections::HashMap<&str, usize> =
+        std::collections::HashMap::new();
+    for e in edges {
+        if e.kind == EdgeKind::Construct {
+            *ctor_in_degree.entry(short(&e.dst)).or_default() += 1;
+        }
+    }
+    let mut ctor_ranked: Vec<(&str, usize)> = ctor_in_degree.into_iter().collect();
+    ctor_ranked.sort_by_key(|&(_, n)| std::cmp::Reverse(n));
+    println!("\n  Top 10 most-CONSTRUCTED types (highest in-degree over Construct edges):");
+    for (sym, n) in ctor_ranked.iter().take(10) {
+        println!("    {n:5}  {sym}");
+    }
+
+    // Node-count delta: destination nodes reachable ONLY via a Construct edge — the data-model
+    // types the pre-fill (Call-only) graph never had a node for at all.
+    let non_construct_nodes: std::collections::HashSet<&StromaNodeId> = edges
+        .iter()
+        .filter(|e| e.kind != EdgeKind::Construct)
+        .flat_map(|e| [&e.src, &e.dst])
+        .collect();
+    let construct_only_nodes: std::collections::HashSet<&StromaNodeId> = edges
+        .iter()
+        .filter(|e| e.kind == EdgeKind::Construct)
+        .flat_map(|e| [&e.src, &e.dst])
+        .filter(|n| !non_construct_nodes.contains(n))
+        .collect();
+    println!(
+        "\n  new (Construct-only) nodes: {}  of {node_count} total — the rest were already \
+         reachable via Call",
+        construct_only_nodes.len()
+    );
+    println!();
 }
 
 fn main() {
@@ -55,6 +111,9 @@ fn main() {
         println!("(empty — check the .scip path / that it generated)");
         return;
     }
+
+    // 1b. Construction vs. Call — the EdgeKind::Construct fill.
+    print_construct_stats(&edges, rel.len());
 
     // 2. Blast-radius over every node — the fat-tail shape on real code.
     let mut blasts: Vec<(usize, usize)> = (0..rel.len())
