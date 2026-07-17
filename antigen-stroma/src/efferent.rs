@@ -29,14 +29,22 @@ use antigen::finding::{
 };
 
 /// One node's risk signals + its source location — the input the bridge grades into a `Finding`.
+///
+/// The two signals are the two orthogonal "maps" (they barely overlap on a single node — construct
+/// targets are TYPES, call-flow lives on FUNCTIONS), so the interesting risk is CROSS-KIND: a type
+/// that is a depended-on shape (high `construct_in`) **and** whose builders are on hot paths (high
+/// `heat`). Keeping them as two fields lets the caller carry that cross-kind aggregate in `heat`.
 #[derive(Debug, Clone)]
 pub struct NodeSignal {
     /// The node's symbol path (for the trigger text).
     pub path: String,
-    /// How many distinct sites CONSTRUCT this node (Construct-edge in-degree).
+    /// How many distinct sites CONSTRUCT this node (Construct-edge in-degree) — how depended-on its
+    /// SHAPE is (changing the shape is high-blast on the builders).
     pub construct_in: usize,
-    /// The node's downstream call-blast (forward reachability size over Call edges).
-    pub call_blast: usize,
+    /// Propagation heat — the node's own call-blast, OR (for a type) the max call-blast of the
+    /// functions that build it (the cross-kind aggregate across the construct edge). How hot the code
+    /// that changing this node would disturb is.
+    pub heat: usize,
     /// The node's definition file (SCIP definition occurrence) — the marker's site.
     pub file: String,
     /// The node's definition line.
@@ -57,13 +65,13 @@ const CLASS: &str = "risky-to-change";
 pub fn risky_to_change_findings(
     nodes: &[NodeSignal],
     construct_hi: usize,
-    blast_hi: usize,
+    heat_hi: usize,
 ) -> Vec<Finding> {
     let mut out = Vec::new();
     for n in nodes {
         let hi_construct = n.construct_in >= construct_hi && construct_hi > 0;
-        let hi_blast = n.call_blast >= blast_hi && blast_hi > 0;
-        let signals = usize::from(hi_construct) + usize::from(hi_blast);
+        let hi_heat = n.heat >= heat_hi && heat_hi > 0;
+        let signals = usize::from(hi_construct) + usize::from(hi_heat);
         if signals == 0 {
             continue;
         }
@@ -76,19 +84,20 @@ pub fn risky_to_change_findings(
         };
 
         // The trigger NAMES the reason (principled — liftable). "risky IF changed", the honest
-        // conditional: this is a hazard on the change-action, not a present defect.
-        let trigger = match (hi_construct, hi_blast) {
+        // conditional: this is a hazard on the change-action, not a present defect. The BOTH case is
+        // the cross-kind fight — a depended-on shape whose builders are on hot paths.
+        let trigger = match (hi_construct, hi_heat) {
             (true, true) => format!(
-                "high construct-in-degree ({}) AND high call-blast ({}): a depended-on shape on a hot path — risky to change (shape OR behavior is wide-blast)",
-                n.construct_in, n.call_blast
+                "high construct-in-degree ({}) AND its builders are on hot paths (propagation-heat {}): a depended-on shape built by hot code — risky to change (a shape change breaks hot paths)",
+                n.construct_in, n.heat
             ),
             (true, false) => format!(
                 "high construct-in-degree ({}): a widely-constructed shape — risky to change its SHAPE",
                 n.construct_in
             ),
             (false, true) => format!(
-                "high call-blast ({}): on a hot path — risky to change its BEHAVIOR",
-                n.call_blast
+                "high propagation-heat ({}): on/near a hot path — risky to change its BEHAVIOR",
+                n.heat
             ),
             (false, false) => unreachable!("signals > 0 guarantees at least one is high"),
         };
@@ -123,18 +132,18 @@ pub fn risky_to_change_findings(
 mod tests {
     use super::*;
 
-    fn node(path: &str, construct_in: usize, call_blast: usize) -> NodeSignal {
+    fn node(path: &str, construct_in: usize, heat: usize) -> NodeSignal {
         NodeSignal {
             path: path.to_string(),
             construct_in,
-            call_blast,
+            heat,
             file: "src/lib.rs".to_string(),
             line: 1,
         }
     }
 
-    /// A node high on BOTH signals is the fight-quadrant → Dread/High, and the finding is a
-    /// `MarkedUnknown` that names both reasons (it flows through the existing `Finding` pipeline).
+    /// A node high on BOTH signals is the cross-kind fight (a depended-on shape whose builders are
+    /// hot) → Dread/High, a `MarkedUnknown` naming both reasons (it flows through the `Finding` pipeline).
     #[test]
     fn both_signals_high_is_a_dread_marker_naming_both() {
         let f = risky_to_change_findings(&[node("Foo", 400, 700)], 100, 100);
@@ -147,7 +156,7 @@ mod tests {
             panic!("expected a MarkedUnknown");
         };
         assert_eq!(*magnitude, Magnitude::Dread);
-        assert!(trigger.contains("construct-in-degree") && trigger.contains("call-blast"));
+        assert!(trigger.contains("construct-in-degree") && trigger.contains("propagation-heat"));
     }
 
     /// A single high signal is a faint Aura/Medium (corroboration: one signal is low magnitude), and
@@ -164,7 +173,7 @@ mod tests {
             panic!("expected a MarkedUnknown");
         };
         assert_eq!(*magnitude, Magnitude::Aura);
-        assert!(trigger.contains("SHAPE") && !trigger.contains("call-blast"));
+        assert!(trigger.contains("SHAPE") && !trigger.contains("propagation-heat"));
     }
 
     /// A node high on neither yields NO finding — the marker fires only on a real risk-signal.
