@@ -149,7 +149,8 @@ const FIX_KEYWORDS: [&str; 5] = ["fix", "bug", "patch", "revert", "hotfix"];
 /// **B-SZZ fix-commit classification** (+ the AG-SZZ cosmetic filter).
 ///
 /// `true` iff `meta` is a *real* fix commit: its subject carries a fix-class keyword
-/// (or an issue reference like `#1234`) AND it is not a cosmetic-only change.
+/// (or a GitHub auto-close issue reference like `close #1234`) AND it is not a
+/// cosmetic-only change.
 ///
 /// - **B-SZZ (the 2005 original):** a fix commit is identified by message keywords /
 ///   issue-tracker links. We match the canonical `FIX_KEYWORDS` (a module-private
@@ -171,14 +172,47 @@ pub fn is_fix_commit(meta: &CommitMeta) -> bool {
     has_keyword || references_issue(&meta.subject)
 }
 
-/// `true` iff `subject` contains an issue reference: a `#` immediately followed by an
-/// ASCII digit (`#1234`, `fixes #42`). A bare `#` (a Markdown heading) does not count.
+/// GitHub's issue-closing verbs — the ones that make `<verb> #N` an actual fix link.
+/// (`fix*` already trips [`FIX_KEYWORDS`]; the load-bearing additions here are the
+/// `close*` / `resolve*` families, which carry no fix-substring.)
+const AUTOCLOSE_VERBS: [&str; 9] = [
+    "close", "closes", "closed", "fix", "fixes", "fixed", "resolve", "resolves", "resolved",
+];
+
+/// `true` iff `subject` links an issue via GitHub's **auto-close syntax**: an auto-close
+/// verb (`close(s|d)` / `fix(es|ed)` / `resolve(s|d)`) immediately preceding a `#<digit>`
+/// reference (`fixes #42`, `close #1234`, `resolves #42 cleanly`).
+///
+/// A **bare** `#<digit>` does NOT count. That is the load-bearing precision fix (the
+/// PR-SZZ recovery the [`is_fix_commit`] scope note anticipates): GitHub's squash-merge
+/// appends a `(#N)` PR suffix to *every* merged commit regardless of whether it is a fix
+/// (`Add streaming mode (#903)`). Counting bare `#N` as a fix inflated the fix-rate to
+/// 25–36% on squash-merge repos (measured on a dogfood gradient), saturating the SZZ
+/// signal. A bare `#` (a Markdown heading) never counted either.
 fn references_issue(subject: &str) -> bool {
-    let bytes = subject.as_bytes();
-    bytes
-        .iter()
-        .enumerate()
-        .any(|(i, &b)| b == b'#' && bytes.get(i + 1).is_some_and(u8::is_ascii_digit))
+    let lower = subject.to_lowercase();
+    let bytes = lower.as_bytes();
+    for (i, &b) in bytes.iter().enumerate() {
+        if b != b'#' || !bytes.get(i + 1).is_some_and(u8::is_ascii_digit) {
+            continue;
+        }
+        // Step back over the separator (`fixes #42`, `close: #42`) to the preceding word.
+        let mut j = i;
+        while j > 0 && matches!(bytes[j - 1], b' ' | b'\t' | b':') {
+            j -= 1;
+        }
+        let before = &lower[..j];
+        let has_verb = AUTOCLOSE_VERBS.iter().any(|v| {
+            before
+                .strip_suffix(v)
+                // whole-word: the char before the verb is not alphanumeric (not `foreclose`).
+                .is_some_and(|p| p.chars().next_back().is_none_or(|c| !c.is_alphanumeric()))
+        });
+        if has_verb {
+            return true;
+        }
+    }
+    false
 }
 
 /// **Mine the SZZ corpus** from already-read substrate: classify fix commits, then
@@ -263,8 +297,23 @@ mod tests {
     fn issue_reference_classifies_a_fix() {
         assert!(is_fix_commit(&commit("a", "close #1234")));
         assert!(is_fix_commit(&commit("b", "resolves #42 cleanly")));
+        assert!(is_fix_commit(&commit("d", "Fixes: #7 in the parser")));
         // A bare `#` (markdown heading) is NOT an issue reference.
         assert!(!is_fix_commit(&commit("c", "# Heading, not an issue")));
+    }
+
+    /// Regression guard for the PR-SZZ precision fix: GitHub's squash-merge appends a
+    /// bare `(#N)` PR suffix to EVERY merged commit. A bare `#N` (no auto-close verb) must
+    /// NOT classify as a fix — counting it inflated the fix-rate to 25–36% on squash-merge
+    /// repos, saturating the SZZ signal on the dogfood gradient.
+    #[test]
+    fn bare_pr_number_suffix_is_not_a_fix() {
+        assert!(!is_fix_commit(&commit("a", "Add streaming mode (#903)")));
+        assert!(!is_fix_commit(&commit("b", "Bump serde to 1.0.2 (#41)")));
+        assert!(!is_fix_commit(&commit(
+            "c",
+            "implement the affinity type #42"
+        )));
     }
 
     // --- AG-SZZ cosmetic filter ---
