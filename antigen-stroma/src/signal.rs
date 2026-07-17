@@ -28,9 +28,11 @@
 //!      transitivity relation is not expressible on stable Rust without the heavy typenum `Cmp`
 //!      pattern; the successor is the canonical minimal strict-higher tier, and dense tiers — no
 //!      skipped levels — are what we want anyway). A latent organ with SEVERAL afferent inputs at
-//!      different tiers (write above the *max*) needs a type-level `MaxTier`; that door is deferred
-//!      until multi-input latent organs are built — the single-input successor wall proves the B2′
-//!      acyclicity core (no organ can feed its own causal upstream).
+//!      different tiers writes above the *max* of the tiers it reads, via the [`TierMax`] type-level
+//!      `max` and the multi-input doors [`write_back2`] / [`write_back3`] (nb 028 §5 promoted this from
+//!      deferred to load-bearing for overlapping multi-lineage organs). `Up<Max<…>>` is strictly above
+//!      every input, so the B2′ acyclicity core holds for multi-lineage organs exactly as the
+//!      single-input successor holds it (no organ can feed its own causal upstream).
 //!
 //!   3. **The channel split** ([`EfferentChannel`]) — the efferent (signed/cancelling) output is a
 //!      DISTINCT type the afferent fold cannot consume, so a `Should − Is` inverse can never enter the
@@ -109,6 +111,114 @@ pub const fn write_back<T, R: OrganTier>(
     // The read is the afferent-input witness; the borrow proves a lower-tier input was in hand. There
     // is no payload to thread here — the tier climb is the whole obligation (B5 write-back-as-facts).
     let _ = read;
+    OrganOutput {
+        value: produced,
+        _tier: PhantomData,
+    }
+}
+
+/// Type-level `max` over the [`OrganTier`] tower — the higher of two tiers, computed at compile time.
+///
+/// A latent organ with SEVERAL afferent inputs at *different* tiers must write strictly above the
+/// **max** of the tiers it reads (ADR-071 B2′; nb 028 §5 promoted this from deferred to load-bearing for
+/// overlapping multi-lineage organs). `TierMax` is the minimal hand-rolled Peano comparison that yields
+/// it — no `typenum` dependency, three non-overlapping impls on the `Base`/`Up` tower:
+///
+///   - `max(0, b)   = b`        — [`Base`] on the left is dominated by anything.
+///   - `max(a+1, 0) = a+1`      — [`Base`] on the right is dominated by any successor.
+///   - `max(a+1, b+1) = max(a, b) + 1`  — peel a level off both and recurse.
+///
+/// The three `Self`/`Rhs` shapes (`Base`/*, `Up`/`Base`, `Up`/`Up`) are pairwise disjoint, so the impls
+/// are coherent without specialization. Because `TierMax: OrganTier` and [`OrganTier`] is sealed, no
+/// downstream crate can add a rogue `TierMax` impl or fabricate a bogus ordering — the seal propagates.
+///
+/// Use the [`Max`] alias rather than naming `<A as TierMax<B>>::Output` directly.
+pub trait TierMax<Rhs: OrganTier>: OrganTier {
+    /// The higher of `Self` and `Rhs`.
+    type Output: OrganTier;
+}
+
+// max(Base, B) = B — tier 0 loses to (or ties) anything.
+impl<B: OrganTier> TierMax<B> for Base {
+    type Output = B;
+}
+
+// max(Up<A>, Base) = Up<A> — any successor beats tier 0. (Disjoint from the Base impl above: Self is
+// `Up<_>`, not `Base`. Disjoint from the Up/Up impl below: Rhs is `Base`, not `Up<_>`.)
+impl<A: OrganTier> TierMax<Base> for Up<A> {
+    type Output = Self;
+}
+
+// max(Up<A>, Up<B>) = Up<max(A, B)> — peel one level off each side and recurse one tier down.
+impl<A: OrganTier + TierMax<B>, B: OrganTier> TierMax<Up<B>> for Up<A> {
+    type Output = Up<<A as TierMax<B>>::Output>;
+}
+
+/// The higher of two [`OrganTier`]s, as a type. `Max<A, B>: OrganTier` always holds, so `Up<Max<A, B>>`
+/// is the strictly-higher write tier a two-input organ climbs to. See [`TierMax`].
+pub type Max<A, B> = <A as TierMax<B>>::Output;
+
+/// The highest of three [`OrganTier`]s — the associative fold `max(max(A, B), C)`. `Up<Max3<A, B, C>>`
+/// is the strictly-higher write tier a three-input organ climbs to. See [`write_back3`].
+pub type Max3<A, B, C> = Max<Max<A, B>, C>;
+
+/// THE two-input write-back door (ADR-071 B2′ + B5; nb 028 §5).
+///
+/// A latent organ reads TWO afferent outputs at tiers `A` and `B` and writes its own output one tier
+/// above the *max* of the two, at `Up<Max<A, B>>`.
+///
+/// The return tier is mechanically `Up<Max<A, B>>` — strictly above *both* inputs (max ≥ each, and `Up`
+/// adds one more), so the B2′ acyclicity invariant holds by construction for the multi-input case exactly
+/// as [`write_back`] holds it for the single-input case: there is no door in this module that yields an
+/// output at a tier `≤` either tier it read, so no multi-lineage organ can feed its own causal upstream.
+/// The two `&OrganOutput` borrows are the afferent-input witnesses — producing the higher-tier output
+/// requires both lower-tier inputs *in hand*.
+///
+/// Order-independent: `Max<A, B>` and `Max<B, A>` denote the same tier, so swapping the two reads yields
+/// the same output tier (the afferent side is the monotone `max`-join of Operator-Boundary Theorem 22.1).
+pub const fn write_back2<T, A, B>(
+    read_a: &OrganOutput<T, A>,
+    read_b: &OrganOutput<T, B>,
+    produced: T,
+) -> OrganOutput<T, Up<Max<A, B>>>
+where
+    A: OrganTier + TierMax<B>,
+    B: OrganTier,
+{
+    // Both reads are the afferent-input witnesses; the borrows prove two lower-tier inputs were in hand.
+    // As with `write_back` there is no payload to thread — the tier climb is the whole obligation.
+    let _ = read_a;
+    let _ = read_b;
+    OrganOutput {
+        value: produced,
+        _tier: PhantomData,
+    }
+}
+
+/// THE three-input write-back door (ADR-071 B2′ + B5; nb 028 §5).
+///
+/// A latent organ reads THREE afferent outputs at tiers `A`, `B`, `C` and writes one tier above their
+/// max, at `Up<Max3<A, B, C>>`.
+///
+/// The max fold is associative (`max(max(a, b), c) = max(a, max(b, c))`), so the nesting order of the
+/// bound is immaterial to the resulting tier — this is the same monotone join as [`write_back2`], applied
+/// once more. Higher arities follow the identical associative pattern (`Up<Max<Max3<A, B, C>, D>>`, …);
+/// they are mechanical to add if a consumer needs them (see the module note on N-input generality).
+pub const fn write_back3<T, A, B, C>(
+    read_a: &OrganOutput<T, A>,
+    read_b: &OrganOutput<T, B>,
+    read_c: &OrganOutput<T, C>,
+    produced: T,
+) -> OrganOutput<T, Up<Max3<A, B, C>>>
+where
+    A: OrganTier + TierMax<B>,
+    B: OrganTier,
+    C: OrganTier,
+    Max<A, B>: TierMax<C>,
+{
+    let _ = read_a;
+    let _ = read_b;
+    let _ = read_c;
     OrganOutput {
         value: produced,
         _tier: PhantomData,

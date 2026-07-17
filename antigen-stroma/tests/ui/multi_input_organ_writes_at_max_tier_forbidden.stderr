@@ -1,0 +1,10 @@
+error[E0308]: mismatched types
+  --> tests/ui/multi_input_organ_writes_at_max_tier_forbidden.rs:23:51
+   |
+23 |     let _at_max: OrganOutput<u32, Up<Up<Base>>> = write_back2(&t0, &t2, 4u32);
+   |                  ------------------------------   ^^^^^^^^^^^^^^^^^^^^^^^^^^^ expected `OrganOutput<u32, Up<Up<Base>>>`, found `OrganOutput<u32, Up<Up<Up<Base>>>>`
+   |                  |
+   |                  expected due to this
+   |
+   = note: expected struct `OrganOutput<u32, Up<Up<Base>>>`
+              found struct `OrganOutput<u32, Up<Up<Up<Base>>>>`
