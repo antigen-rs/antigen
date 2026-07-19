@@ -50,6 +50,7 @@ pub mod read;
 pub mod scip;
 pub mod signal;
 pub mod syn_ingest;
+pub mod verdict;
 pub mod write;
 
 pub use db::StromaDb;
