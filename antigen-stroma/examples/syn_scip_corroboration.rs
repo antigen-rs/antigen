@@ -21,14 +21,13 @@
 #![allow(clippy::cast_precision_loss)]
 
 use std::collections::HashSet;
-use std::path::Path;
+use std::path::{Path, PathBuf};
 
 use antigen_stroma::base::facts::EdgeKind;
 use antigen_stroma::db::StromaDb;
 use antigen_stroma::read::SnapshotHandle;
 use antigen_stroma::scip::{ingest_scip, populate_from_reconstructions};
-use antigen_stroma::syn_ingest::{bare_fn_name, corroborate_with_syn, syn_call_pairs_from_str};
-use walkdir::WalkDir;
+use antigen_stroma::syn_ingest::{bare_fn_name, corroborate_with_syn, syn_call_pairs_from_dir};
 
 /// Workspace crate `src/` dirs to walk for the syn feeder (never includes `target/`).
 const CRATE_DIRS: &[&str] = &[
@@ -39,27 +38,6 @@ const CRATE_DIRS: &[&str] = &[
     "antigen-attestation/src",
     "cargo-antigen/src",
 ];
-
-/// Every syntactic `(caller, callee)` bare-name pair across the workspace sources, deduplicated.
-fn extract_syn_pairs(workspace_root: &Path) -> HashSet<(String, String)> {
-    let mut pairs = HashSet::new();
-    for dir in CRATE_DIRS {
-        let src_root = workspace_root.join(dir);
-        if !src_root.exists() {
-            continue;
-        }
-        for entry in WalkDir::new(&src_root)
-            .into_iter()
-            .filter_map(Result::ok)
-            .filter(|e| e.path().extension().is_some_and(|ex| ex == "rs"))
-        {
-            if let Ok(src) = std::fs::read_to_string(entry.path()) {
-                pairs.extend(syn_call_pairs_from_str(&src));
-            }
-        }
-    }
-    pairs
-}
 
 fn pct(n: usize, d: usize) -> f64 {
     if d == 0 {
@@ -96,8 +74,9 @@ fn main() {
         .unwrap_or_default();
     let total_call = edges.iter().filter(|e| e.kind == EdgeKind::Call).count();
 
-    // 2. The syn feeder over antigen's own source.
-    let syn_pairs = extract_syn_pairs(workspace_root);
+    // 2. The syn feeder over antigen's own source (the library walker — dogfooding syn_ingest).
+    let src_roots: Vec<PathBuf> = CRATE_DIRS.iter().map(|d| workspace_root.join(d)).collect();
+    let syn_pairs = syn_call_pairs_from_dir(&src_roots);
 
     // 3. Corroborate the production Call edges with syn (the library primitive).
     let stats = corroborate_with_syn(&mut edges, &syn_pairs);

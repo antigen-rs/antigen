@@ -28,6 +28,8 @@
 //! conflict side), are the next slices.
 
 use std::collections::HashSet;
+use std::fs;
+use std::path::Path;
 
 use syn::visit::Visit;
 
@@ -195,11 +197,62 @@ pub fn corroborate_with_syn<S: std::hash::BuildHasher>(
     out
 }
 
+/// Collect bare-name `(caller, callee)` call pairs from every `.rs` file under `roots`, recursively.
+///
+/// Plain `std::fs`, no extra deps (`walkdir` stays dev-only). `target/` and `.git/` are skipped so a
+/// broad root is safe; unreadable files and parse errors are silently skipped (`syn` needs parseable code).
+#[must_use]
+pub fn syn_call_pairs_from_dir<P: AsRef<Path>>(roots: &[P]) -> HashSet<(String, String)> {
+    let mut pairs = HashSet::new();
+    for root in roots {
+        collect_rs(root.as_ref(), &mut pairs);
+    }
+    pairs
+}
+
+fn collect_rs(dir: &Path, pairs: &mut HashSet<(String, String)>) {
+    let Ok(entries) = fs::read_dir(dir) else {
+        return;
+    };
+    for entry in entries.flatten() {
+        let path = entry.path();
+        if path.is_dir() {
+            if path
+                .file_name()
+                .is_some_and(|n| n == "target" || n == ".git")
+            {
+                continue;
+            }
+            collect_rs(&path, pairs);
+        } else if path.extension().is_some_and(|e| e == "rs") {
+            if let Ok(src) = fs::read_to_string(&path) {
+                pairs.extend(syn_call_pairs_from_str(&src));
+            }
+        }
+    }
+}
+
+/// The "corroborated ingest" convenience: walk `source_roots` and corroborate `edges` in place.
+///
+/// [`syn_call_pairs_from_dir`] then [`corroborate_with_syn`]. Build-ahead-of-consumer: the entry point
+/// an organ or the scan path calls to consume a corroborated graph; wiring it as the scan *default* (so
+/// every organ sees corroborated edges) is a later slice.
+pub fn corroborate_from_source<P: AsRef<Path>>(
+    edges: &mut [EdgeFact],
+    source_roots: &[P],
+) -> SynCorroboration {
+    let syn_pairs = syn_call_pairs_from_dir(source_roots);
+    corroborate_with_syn(edges, &syn_pairs)
+}
+
 #[cfg(test)]
 mod tests {
     use std::collections::{BTreeSet, HashSet};
 
-    use super::{SynCorroboration, bare_fn_name, corroborate_with_syn, syn_call_pairs_from_str};
+    use super::{
+        SynCorroboration, bare_fn_name, corroborate_from_source, corroborate_with_syn,
+        syn_call_pairs_from_dir, syn_call_pairs_from_str,
+    };
     use crate::base::facts::{EdgeFact, EdgeKind, WitnessSource};
     use crate::node::id::FqPath;
     use crate::node::{CfgSet, IdentityDigest, StromaNodeId};
@@ -318,5 +371,41 @@ mod tests {
 
         assert_eq!(stats, SynCorroboration::default()); // neither corroborated nor scip_only
         assert!(!edges[0].witnesses.contains(&WitnessSource::Syn));
+    }
+
+    #[test]
+    fn from_dir_walks_rs_files_recursively_and_skips_non_rs() {
+        let base = std::env::temp_dir().join(format!("syn_ingest_from_dir_{}", std::process::id()));
+        std::fs::remove_dir_all(&base).ok();
+        let nested = base.join("nested");
+        std::fs::create_dir_all(&nested).unwrap();
+        std::fs::write(base.join("a.rs"), "fn f() { g(); }").unwrap();
+        std::fs::write(nested.join("b.rs"), "fn h() { i(); }").unwrap();
+        std::fs::write(base.join("note.txt"), "fn nope() { no(); }").unwrap();
+
+        let pairs = syn_call_pairs_from_dir(&[base.as_path()]);
+        std::fs::remove_dir_all(&base).ok();
+
+        assert!(pairs.contains(&("f".to_string(), "g".to_string())));
+        assert!(pairs.contains(&("h".to_string(), "i".to_string()))); // recursed into nested/
+        assert!(!pairs.iter().any(|(_, callee)| callee == "no")); // the .txt was never parsed
+    }
+
+    #[test]
+    fn corroborate_from_source_composes_walk_and_corroboration() {
+        let base = std::env::temp_dir().join(format!("syn_ingest_from_src_{}", std::process::id()));
+        std::fs::remove_dir_all(&base).ok();
+        std::fs::create_dir_all(&base).unwrap();
+        std::fs::write(base.join("m.rs"), "fn caller() { callee(); }").unwrap();
+
+        let mut edges = vec![scip_call(
+            "x cargo c 0.1 m/caller().",
+            "x cargo c 0.1 n/callee().",
+        )];
+        let stats = corroborate_from_source(&mut edges, &[base.as_path()]);
+        std::fs::remove_dir_all(&base).ok();
+
+        assert_eq!(stats.corroborated, 1);
+        assert!(edges[0].witnesses.contains(&WitnessSource::Syn));
     }
 }
