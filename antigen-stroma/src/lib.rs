@@ -50,6 +50,7 @@ pub mod read;
 pub mod rough;
 pub mod scip;
 pub mod signal;
+pub mod soft;
 pub mod syn_ingest;
 pub mod verdict;
 pub mod write;
