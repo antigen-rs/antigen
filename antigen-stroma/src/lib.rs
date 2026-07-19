@@ -47,6 +47,7 @@ pub mod fidelity;
 pub mod intent;
 pub mod node;
 pub mod read;
+pub mod rough;
 pub mod scip;
 pub mod signal;
 pub mod syn_ingest;
