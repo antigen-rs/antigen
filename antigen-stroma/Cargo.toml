@@ -39,12 +39,13 @@ proc-macro2 = { workspace = true }
 quote = { workspace = true }
 
 serde = { workspace = true }
+# cargo `--message-format=json` diagnostic parsing (the dead-code F-producer; pure string->data).
+serde_json = { workspace = true }
 # SCIP protobuf index parser (the resolved-feeder wiring).
 scip = "0.9"
 protobuf = "=3.7.2"
 
 [dev-dependencies]
-serde_json = { workspace = true }
 tempfile = { workspace = true }
 # examples/dual_tier_barcode.rs: walks the workspace crate src/ dirs for the syntactic (syn)
 # call-edge feeder — dev-only so walkdir stays out of the core lib's dependency surface.
