@@ -44,6 +44,7 @@ pub mod deferred;
 pub mod ds;
 pub mod efferent;
 pub mod engine;
+pub mod fca;
 pub mod fidelity;
 pub mod intent;
 pub mod node;
