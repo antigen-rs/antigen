@@ -238,6 +238,72 @@ pub enum WitnessSource {
     ScipAmbiguous,
 }
 
+// ── The F axis: witnessed ABSENCE (the dual of the presence witnesses above) ──────────────────────
+
+/// An instrument that can witness ABSENCE — the F-side dual of [`WitnessSource`].
+///
+/// Each variant IS its own absence-predicate (it names WHAT kind of absence the instrument observed).
+/// Open registry (`#[non_exhaustive]`), like `WitnessSource`: a new absence-instrument accretes a variant
+/// without breaking downstream matches.
+///
+/// These are the CLEAN F-producers. The phantom census (2026-07-18) showed the syn-vs-SCIP bare-name
+/// "conflict" is mostly out-of-scope boundary-crossing plus collision noise — NOT a clean absence; the
+/// unambiguous F is a *sensor-witnessed* absence like these.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
+#[non_exhaustive]
+pub enum AbsenceWitness {
+    /// A coverage run observed this subject's code never executed (e.g. `cargo-llvm-cov`).
+    NotExecuted,
+    /// The compiler reported this item declared but never used (rustc `dead_code`).
+    DeadCode,
+    /// Control-flow / reachability analysis found this subject unreachable (MIR / CFG).
+    Unreachable,
+}
+
+/// One WITNESSED absence — a subject an instrument observed to be NOT present, and which instruments.
+///
+/// The **F axis** of the (T, I, F) evidence model, held in its OWN relation ([`AbsenceFacts`]) rather
+/// than as a flavor of [`EdgeFact::witnesses`], for the reason the census made concrete: a clean absence
+/// is about a SUBJECT (a node / region — "this fn never ran", "this item is dead"), not a proposed edge,
+/// and it is a *different kind* of observation than presence. Held separately so an organ that wants a
+/// unified (T, I, F) verdict JOINS presence and absence — the join is a projection, and projections
+/// belong to organs (the same rationale as [`SymbolFacts`]).
+///
+/// **This is F, never I.** An `AbsenceFact` is a *witnessed* absence — an instrument LOOKED and found the
+/// subject absent — which is F (resolved-absence). Distinguishing "present" from "nobody looked" for a
+/// subject that has NO `AbsenceFact` is the F-vs-I question, and it needs the sensor-scope / observability
+/// layer (nb 029 §3), a later slice. This relation holds only the positive F-side observations.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct AbsenceFact {
+    /// The instrument's OWN identity for the absent thing — a symbol string, an item path, a `file:line`
+    /// — kept verbatim (like [`SymbolFact::symbol`]) so a join to the node graph is re-derivable at any
+    /// fidelity. Different absence-instruments name subjects differently; unifying them is an organ's job.
+    pub subject: String,
+    /// WHICH instruments witnessed this subject absent — multi-witness like [`EdgeFact::witnesses`]:
+    /// `{NotExecuted, DeadCode}` (a coverage run AND the compiler both call it absent) is a CORROBORATED
+    /// absence, a stronger F than either alone (the corroboration law, F-side).
+    pub witnesses: BTreeSet<AbsenceWitness>,
+}
+
+impl AbsenceFact {
+    /// `true` iff more than one independent instrument witnessed this absence — a corroborated F.
+    /// Reported, never auto-promoted: the strength is an organ's to weigh (mirrors
+    /// [`EdgeFact::is_corroborated`]).
+    #[must_use]
+    pub fn is_corroborated(&self) -> bool {
+        self.witnesses.len() >= 2
+    }
+}
+
+/// The absence relation — the **F axis**. Populated by absence-instruments (coverage / dead-code / CFG);
+/// salsa re-runs anything reading it only when this changes (mirrors [`EdgeFacts`]). An organ joins it
+/// against the presence graph to compute a (T, I, F) verdict per subject.
+#[salsa::input]
+pub struct AbsenceFacts {
+    /// The witnessed absences in this snapshot.
+    pub absences: Vec<AbsenceFact>,
+}
+
 impl EdgeFact {
     /// Build an edge from its witness set, **deriving** the tier rather than stamping it.
     ///
@@ -454,5 +520,39 @@ mod tests {
     fn an_unknown_kind_is_held_not_dropped() {
         assert_eq!(ScipKind::from_raw(9999), ScipKind::Other(9999));
         assert_ne!(ScipKind::from_raw(9999), ScipKind::from_raw(9998));
+    }
+
+    // ── The F axis: witnessed absence ──────────────────────────────────────────────────────────
+
+    #[test]
+    fn a_single_instrument_absence_is_not_corroborated() {
+        let a = AbsenceFact {
+            subject: "crate scan/foo().".to_string(),
+            witnesses: BTreeSet::from([AbsenceWitness::DeadCode]),
+        };
+        assert!(!a.is_corroborated());
+    }
+
+    #[test]
+    fn two_instruments_agreeing_on_absence_is_a_corroborated_f() {
+        // coverage AND the compiler both call it absent — the corroboration law, F-side.
+        let a = AbsenceFact {
+            subject: "crate scan/foo().".to_string(),
+            witnesses: BTreeSet::from([AbsenceWitness::DeadCode, AbsenceWitness::NotExecuted]),
+        };
+        assert!(a.is_corroborated());
+        assert_eq!(a.witnesses.len(), 2);
+    }
+
+    #[test]
+    fn absence_subject_is_kept_verbatim() {
+        // The instrument's own identity is held raw (the SymbolFact contract) so a join is
+        // re-derivable at any fidelity — no normalization at the door.
+        let raw = "rust-analyzer cargo antigen 0.6.0 scan/scan_file().";
+        let a = AbsenceFact {
+            subject: raw.to_string(),
+            witnesses: BTreeSet::from([AbsenceWitness::Unreachable]),
+        };
+        assert_eq!(a.subject, raw);
     }
 }
