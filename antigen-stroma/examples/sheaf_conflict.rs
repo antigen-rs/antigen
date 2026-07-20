@@ -48,7 +48,10 @@ const CRATE_DIRS: &[&str] = &[
     "cargo-antigen/src",
 ];
 
-const TOLERANCES: &[f64] = &[1e-12, 1e-9, 1e-7];
+/// Swept wide on purpose. If the rank never moves across twelve orders of magnitude, "tolerance-insensitive"
+/// is a MEASURED property of this construction, not an assumption — and the last entries probe where it
+/// finally does move, which is the only way to show the thresholding path is live rather than inert.
+const TOLERANCES: &[f64] = &[1e-12, 1e-9, 1e-7, 1e-3, 1e-1, 0.4, 0.6];
 
 /// Which instruments assert an edge — this is exactly what picks the restriction row.
 #[derive(Clone, Copy, PartialEq, Eq)]
@@ -147,6 +150,64 @@ fn pct(n: usize, d: usize) -> f64 {
     }
 }
 
+/// Reconcile this example's edge count with `hodge_betti`'s, so the two numbers are never read as competing
+/// measurements of one quantity.
+///
+/// `hodge_betti` dedups ORIENTED edges and keeps self-loops; this example dedups UNDIRECTED simple edges and
+/// drops self-loops. Same vertices, same components — the whole difference is those two choices, and the gap
+/// in `β₁` must equal the gap in `|E|` exactly, because `β₁ = E − V + C`.
+fn reconcile_with_hodge_betti(recons: &[EdgeReconstruction], undirected_simple: usize) {
+    let mut oriented: HashSet<(&str, &str)> = HashSet::new();
+    for r in recons {
+        if let EdgeReconstruction::Resolved(e) = r {
+            if e.kind == EdgeKind::Call {
+                oriented.insert((e.src_symbol.as_str(), e.dst_symbol.as_str()));
+            }
+        }
+    }
+    let loops = oriented.iter().filter(|(a, b)| a == b).count();
+    let mutual = oriented
+        .iter()
+        .filter(|(a, b)| a != b && oriented.contains(&(*b, *a)))
+        .count()
+        / 2;
+    println!(
+        "  reconciliation with hodge_betti: oriented-deduped {} = undirected-simple {undirected_simple} + self-loops {loops} + reciprocal back-edges {mutual}  (delta {})",
+        oriented.len(),
+        oriented.len() - undirected_simple
+    );
+    assert_eq!(
+        oriented.len(),
+        undirected_simple + loops + mutual,
+        "the two edge counts must reconcile exactly"
+    );
+}
+
+/// Degenerate baselines: re-label EVERY edge with one single restriction row, keeping the graph identical.
+///
+/// This is the negative control for the whole construction. If a heterogeneous instrument-labelling produced
+/// the same rank as a uniform one, then distinguishing the instruments contributes nothing and the measured
+/// H⁰/H¹ carry no information beyond the base graph's topology. Reported as MEASURED ranks, not derived ones.
+fn degenerate_baselines(edges: &[((String, String), Asserted)], tol: f64) {
+    println!("\n  DEGENERATE BASELINES (same graph, every edge forced to ONE restriction row):");
+    for (name, forced) in [
+        ("all [0.5, 0.5] (both)", Asserted::Both),
+        ("all [1.0, 0.0] (syn)", Asserted::SynOnly),
+        ("all [0.0, 1.0] (SCIP)", Asserted::ScipOnly),
+    ] {
+        let relabelled: Vec<((String, String), Asserted)> =
+            edges.iter().map(|(p, _)| (p.clone(), forced)).collect();
+        let sheaf = build_sheaf(&relabelled);
+        let r = sheaf.sparse_rank_total(tol).rank;
+        let (v, e) = (sheaf.node_count(), sheaf.edge_count());
+        println!(
+            "    {name:<24} rank {r:5}   dim H^0 {:5}   dim H^1 {:6}",
+            2 * v - r,
+            e - r
+        );
+    }
+}
+
 /// Measure one edge set end to end: census, ranks at each tolerance, Euler self-check, cost.
 fn measure(label: &str, edges: &[((String, String), Asserted)]) {
     let (mut both, mut syn_only, mut scip_only) = (0usize, 0usize, 0usize);
@@ -232,6 +293,7 @@ fn measure(label: &str, edges: &[((String, String), Asserted)]) {
             );
         }
     }
+    degenerate_baselines(edges, 1e-9);
     println!("  (sheaf assembly {build_ms:.0} ms)");
 }
 
@@ -277,6 +339,7 @@ fn main() {
         "\nresolved directed Call edges {directed}  ->  self-loops dropped {self_loops}  ->  undirected simple {}",
         scip_undirected.len()
     );
+    reconcile_with_hodge_betti(&recons, scip_undirected.len());
 
     // --- syn side: bare-name call pairs ---
     let src_roots: Vec<PathBuf> = CRATE_DIRS.iter().map(|d| workspace_root.join(d)).collect();
