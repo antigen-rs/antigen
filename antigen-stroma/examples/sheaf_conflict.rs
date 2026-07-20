@@ -307,9 +307,16 @@ fn both_edges_ambiguity(
          \x20     67.4% of the surplus survives even the maximally pessimistic correction. Bridges are bounded\n\
          \x20     by arithmetic at <=~13% of the gap.\n\
          \x20     OPEN, and NOT a measurement question: R_e=[0.5,0.5] annihilates the disagreement axis on every\n\
-         \x20     corroborated edge, so this lens sees disagreement TOPOLOGY and discards disagreement\n\
-         \x20     MAGNITUDE -- 1450 is real but a shadow of the target. The fix is edge_dim=2 (retain both\n\
-         \x20     instrument coordinates instead of collapsing one); never costed. Roadmap, not a caveat.",
+         \x20     corroborated edge, so this lens sees disagreement TOPOLOGY and discards MAGNITUDE. edge_dim=2\n\
+         \x20     was proposed as the fix and is PROVABLY DEGENERATE (all candidate kernels are coordinate-\n\
+         \x20     aligned, so delta^0 splits into two scalar sheaves: dim H1 = beta1(G_syn) + beta1(G_scip) --\n\
+         \x20     two union-finds, zero instrument interaction). The irony: span(1,-1) is BOTH why this lens is\n\
+         \x20     blind to magnitude AND why it is non-degenerate -- the only non-coordinate-aligned kernel, so\n\
+         \x20     the defect and the signal are the same feature. Free improvement: row [1,-1] instead, kernel\n\
+         \x20     span(1,1) -- the sheaf then constrains the syn-minus-SCIP IMBALANCE (verified non-degenerate,\n\
+         \x20     rank 21). The real binding constraint is the SAME-R-on-both-endpoints convention, not\n\
+         \x20     edge_dim: only ker R_e can ever matter under it. Sheaf::new already takes (R_tail, R_head) as\n\
+         \x20     a PAIR -- it is build_sheaf below that collapses the regime by passing one map twice.",
         coll_deg.len(),
         uniq_deg.len()
     );
