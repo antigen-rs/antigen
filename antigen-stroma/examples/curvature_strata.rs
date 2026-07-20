@@ -91,6 +91,56 @@ fn bind_test(g: &UndirectedGraph, cs: &Curvatures, edges: &[(usize, usize)]) -> 
     lift
 }
 
+/// Is a LOCAL, degree-NORMALIZED proxy viable where raw Forman failed? Locality matters independently of
+/// accuracy: antigen is salsa-incremental, so a 1-hop-computable measure updates in O(neighbourhood) while
+/// the exact (Tarjan) answer is GLOBAL and invalidates on any change. Two candidates, both base-rate
+/// controlled against real cut edges: normalized Forman `F / (deg u + deg v)` (removes the degree scale
+/// that swamped the raw measure), and neighbourhood overlap `|N(u) ∩ N(v)| / |N(u) ∪ N(v)|` (classic local
+/// embeddedness, normalized by construction).
+///
+/// Note the theorem that bounds ANY such proxy: a cut edge necessarily has ZERO triangles (a common
+/// neighbour would be an alternate path), so local density can FILTER cut-edge candidates but can never
+/// DETECT them — bottleneck-ness is a global property. Local proxies only track it when local density
+/// correlates with global connectivity (community graphs), which a hub-and-spoke call graph is not.
+fn local_proxy_test(g: &UndirectedGraph, edges: &[(usize, usize)]) {
+    let cuts = g.cut_edges();
+    let base = cuts.len() as f64 / edges.len() as f64;
+    let score = |name: &str, f: &dyn Fn(usize, usize) -> f64| {
+        let mut scored: Vec<((usize, usize), f64)> =
+            edges.iter().map(|&(u, v)| ((u, v), f(u, v))).collect();
+        scored.sort_by(|a, b| a.1.partial_cmp(&b.1).unwrap()); // ascending ⇒ most bridge-like first
+        let k = cuts.len().min(scored.len()).max(1);
+        let hits = scored[..k].iter().filter(|(e, _)| cuts.contains(e)).count();
+        let precision = hits as f64 / k as f64;
+        println!(
+            "    {name:<20} precision {precision:.3}  lift {:.2}",
+            if base > 0.0 { precision / base } else { 0.0 }
+        );
+    };
+    println!("\n  LOCAL-PROXY VIABILITY (degree-normalized, vs real cut edges; base {base:.3}):");
+    score("normalized Forman", &|u, v| {
+        let d = (g.degree(u) + g.degree(v)) as f64;
+        if d > 0.0 {
+            g.forman(u, v) as f64 / d
+        } else {
+            0.0
+        }
+    });
+    score("neighbourhood overlap", &|u, v| {
+        let inter = g.triangles_on(u, v) as f64;
+        let union = (g.degree(u) + g.degree(v)) as f64 - inter;
+        if union > 0.0 { inter / union } else { 0.0 }
+    });
+    let zero_tri_cuts = cuts
+        .iter()
+        .filter(|(u, v)| g.triangles_on(*u, *v) == 0)
+        .count();
+    println!(
+        "    (theorem check: {zero_tri_cuts}/{} cut edges have zero triangles — necessarily 100%)",
+        cuts.len()
+    );
+}
+
 /// Descriptive (DEFINITIONAL — the `+3m` term mechanically lifts triangle-bearing edges).
 fn report_corroboration(g: &UndirectedGraph, cs: &Curvatures) {
     let pick = |want: bool| -> Curvatures {
@@ -136,6 +186,7 @@ fn main() {
 
     let tri_frac = report_distribution(&g, &curvatures, &edges);
     let lift = bind_test(&g, &curvatures, &edges);
+    local_proxy_test(&g, &edges);
     report_corroboration(&g, &curvatures);
 
     println!("\n  => VERDICT:");
