@@ -144,8 +144,15 @@ impl Sheaf {
         lhs == rhs
     }
 
-    /// **The primary output.** Per-edge disagreement `‖R_head·x_head − R_tail·x_tail‖` for an assignment `x`
-    /// (a flat `|V|·vertex_dim` vector). Localizes conflict to a specific edge — a dimension cannot.
+    /// Per-edge disagreement `‖R_head·x_head − R_tail·x_tail‖` for an assignment `x` (a flat
+    /// `|V|·vertex_dim` vector).
+    ///
+    /// **DEFERRED for the two-instrument structural sheaf — do not read this as that construction's output.**
+    /// (An earlier revision of this doc called it "the primary output"; that is retracted, see the module
+    /// header.) It is well-defined and correct for any sheaf that genuinely HAS stalk data, i.e. a case (B)
+    /// observation sheaf. The structural sheaf built over syn/SCIP is case (A): its evidence is spent on the
+    /// restriction maps and its stalks are empty, so there is no honest `x` to pass here — and `ker[0.5,0.5]`
+    /// is precisely the disagreement axis, so an improvised `x` reports `0.0` on maximal disagreement.
     #[must_use]
     pub fn edge_residuals(&self, x: &[f64]) -> Vec<f64> {
         self.edges
@@ -271,11 +278,28 @@ impl Sheaf {
     /// `rank δ⁰` via the sparse path, summed over connected components.
     ///
     /// Equivalent to `rank(&mut self.coboundary(), tol)` but without materializing the dense matrix.
+    ///
+    /// **The tolerance scale is taken over the WHOLE coboundary, never per block.** `tol` is relative to the
+    /// largest entry, so deriving it per component would make the effective cutoff depend on how the graph
+    /// happens to partition — a component whose weights are uniformly small would get a proportionally
+    /// smaller cutoff and retain rank the whole-graph path discards. That desynchronizes `sparse_rank_total`
+    /// from `sparse_rank` and from dense [`rank`] whenever `tol` lands between a block's max and the global
+    /// max. Splitting is exact only when the threshold is held fixed across blocks.
     #[must_use]
     pub fn sparse_rank_total(&self, tol: f64) -> SparseRankReport {
-        self.split_components()
+        let blocks: Vec<SparseMatrix> = self
+            .split_components()
             .iter()
-            .map(|s| sparse_rank(&s.sparse_coboundary(), tol))
+            .map(Self::sparse_coboundary)
+            .collect();
+        let scale = blocks
+            .iter()
+            .map(SparseMatrix::max_abs)
+            .fold(0.0_f64, f64::max)
+            .max(1e-300);
+        blocks
+            .iter()
+            .map(|b| sparse_rank_with_cutoff(b, tol * scale))
             .fold(SparseRankReport::default(), SparseRankReport::merge)
     }
 
@@ -325,6 +349,18 @@ impl SparseMatrix {
     #[must_use]
     pub fn nnz(&self) -> usize {
         self.rows.iter().map(Vec::len).sum()
+    }
+
+    /// Largest entry by magnitude — the scale a RELATIVE tolerance multiplies.
+    ///
+    /// Exposed because a caller reducing several blocks of one matrix must take this over the WHOLE matrix
+    /// and hold it fixed; see [`Sheaf::sparse_rank_total`].
+    #[must_use]
+    pub fn max_abs(&self) -> f64 {
+        self.rows
+            .iter()
+            .flat_map(|r| r.iter())
+            .fold(0.0_f64, |a, &(_, v)| a.max(v.abs()))
     }
 
     /// Number of rows.
@@ -408,15 +444,18 @@ impl SparseRankReport {
 /// fact, so the caller must report the tolerance alongside any dimension derived from this.
 #[must_use]
 pub fn sparse_rank(m: &SparseMatrix, tol: f64) -> SparseRankReport {
-    use std::collections::BTreeMap;
+    sparse_rank_with_cutoff(m, tol * m.max_abs().max(1e-300))
+}
 
-    let scale = m
-        .rows
-        .iter()
-        .flat_map(|r| r.iter())
-        .fold(0.0_f64, |a, &(_, v)| a.max(v.abs()))
-        .max(1e-300);
-    let cutoff = tol * scale;
+/// Rank at an ABSOLUTE cutoff, for callers reducing several blocks of one matrix under a shared threshold.
+///
+/// [`sparse_rank`] is this with `cutoff = tol · max|entry|`. Use this form when the scale must come from
+/// somewhere other than the matrix in hand — the component split in [`Sheaf::sparse_rank_total`] is exactly
+/// that case, and deriving the scale per block instead is a real bug (it desynchronizes the split path from
+/// the dense one).
+#[must_use]
+pub fn sparse_rank_with_cutoff(m: &SparseMatrix, cutoff: f64) -> SparseRankReport {
+    use std::collections::BTreeMap;
 
     // pivot column -> that pivot's row, sorted, whose FIRST entry is at the pivot column
     let mut pivots: BTreeMap<usize, Vec<(usize, f64)>> = BTreeMap::new();
@@ -521,23 +560,33 @@ mod tests {
 
     const TOL: f64 = 1e-9;
 
-    /// The cross-check every sparse test runs: sparse rank MUST equal dense rank on the same sheaf.
-    /// Disagreement means one of the two implementations is wrong, which outranks any measurement.
+    /// Tolerances the cross-check sweeps. Checking only a tiny `tol` hid a real divergence: the split path
+    /// and the flat path can only disagree once `tol` is large enough to annihilate some rows but not others,
+    /// which never happens near 1e-9. A cross-check that never varies the threshold cannot see threshold bugs.
+    const TOL_SWEEP: &[f64] = &[1e-12, 1e-9, 1e-3, 0.4, 0.6, 0.9];
+
+    /// The cross-check every sparse test runs: sparse rank MUST equal dense rank on the same sheaf, at EVERY
+    /// tolerance. Disagreement means one of the implementations is wrong, which outranks any measurement.
     fn agree(s: &Sheaf) -> usize {
-        let dense = rank(&mut s.coboundary(), TOL);
-        let sparse_flat = sparse_rank(&s.sparse_coboundary(), TOL).rank;
-        let sparse_split = s.sparse_rank_total(TOL).rank;
-        assert_eq!(dense, sparse_flat, "sparse rank disagrees with dense rank");
-        assert_eq!(
-            dense, sparse_split,
-            "component-split rank disagrees with dense rank"
-        );
-        assert_eq!(
-            s.cohomology_dims(TOL),
-            s.sparse_cohomology_dims(TOL),
-            "sparse cohomology dims disagree with dense"
-        );
-        dense
+        for &tol in TOL_SWEEP {
+            let dense = rank(&mut s.coboundary(), tol);
+            let sparse_flat = sparse_rank(&s.sparse_coboundary(), tol).rank;
+            let sparse_split = s.sparse_rank_total(tol).rank;
+            assert_eq!(
+                dense, sparse_flat,
+                "sparse rank disagrees with dense at tol {tol:e}"
+            );
+            assert_eq!(
+                dense, sparse_split,
+                "component-split rank disagrees with dense at tol {tol:e}"
+            );
+            assert_eq!(
+                s.cohomology_dims(tol),
+                s.sparse_cohomology_dims(tol),
+                "sparse cohomology dims disagree with dense at tol {tol:e}"
+            );
+        }
+        rank(&mut s.coboundary(), TOL)
     }
 
     #[test]
@@ -670,6 +719,28 @@ mod tests {
         let d = s.sparse_cohomology_dims(TOL);
         assert_eq!(d, (8 - r, 4 - r));
         assert!(s.euler_check(d));
+    }
+
+    #[test]
+    fn the_component_split_uses_the_global_tolerance_scale_not_a_per_block_one() {
+        // REGRESSION (found by adversarial review, 2026-07-20). Two components whose weights differ in
+        // magnitude: one carries 0.5 entries, the other 1.0. At tol = 0.6 the global cutoff is 0.6, which
+        // annihilates the 0.5 block entirely -> rank 1. Deriving the scale PER COMPONENT gave the 0.5 block
+        // its own cutoff of 0.3, so it survived and the split path returned 2 while dense returned 1.
+        let half = (vec![0.5, 0.5], vec![0.5, 0.5]);
+        let unit = (vec![0.0, 1.0], vec![0.0, 1.0]);
+        let s = Sheaf::new(4, vec![(0, 1), (2, 3)], 2, 1, vec![half, unit]);
+        assert_eq!(s.split_components().len(), 2, "the blocks must be separate");
+
+        let dense = rank(&mut s.coboundary(), 0.6);
+        assert_eq!(dense, 1, "at tol 0.6 the 0.5-weighted block is annihilated");
+        assert_eq!(
+            s.sparse_rank_total(0.6).rank,
+            dense,
+            "split path must use the GLOBAL scale, not each block's own"
+        );
+        assert_eq!(sparse_rank(&s.sparse_coboundary(), 0.6).rank, dense);
+        agree(&s);
     }
 
     #[test]
