@@ -633,13 +633,45 @@ mod tests {
     #[test]
     fn edge_residuals_localize_the_disagreement() {
         // A path with a section that agrees on edge 0 and disagrees on edge 1 -- the residual must point
-        // at edge 1 specifically. This is the PRIMARY output: a dimension cannot say WHERE.
+        // at edge 1 specifically. This is a CONSTANT sheaf with a supplied x, i.e. the case (B) setting
+        // where a residual is meaningful; it is NOT a claim about the two-instrument structural sheaf, whose
+        // residual is deferred (see `edge_residuals` and the module header). An earlier revision of this
+        // comment called the residual "the PRIMARY output" -- retracted 2026-07-20.
         let s = Sheaf::constant(3, vec![(0, 1), (1, 2)], 1);
         let r = s.edge_residuals(&[1.0, 1.0, 5.0]);
         assert!((r[0] - 0.0).abs() < TOL, "edge 0 agrees");
         assert!(
             (r[1] - 4.0).abs() < TOL,
             "edge 1 carries the whole disagreement"
+        );
+    }
+
+    /// Makes the module header's blindness law EXECUTABLE instead of merely argued.
+    ///
+    /// The other `edge_residuals` test runs at `vertex_dim = 1`, where a 1×1 restriction has no nontrivial
+    /// kernel and the blindness *cannot occur* — so nothing pinned the actual claim until now. A doc law that
+    /// no test can contradict is a comment, not an invariant.
+    #[test]
+    fn edge_residuals_is_blind_to_cross_instrument_disagreement_at_vertex_dim_2() {
+        // `ker[0.5,0.5] = span{(1,-1)}` IS the cross-instrument disagreement axis, so the `Both` row returns
+        // exactly 0.0 on MAXIMAL disagreement. The exclusive row returns 1.0 on the same input — and that is
+        // NOT "detection at a different threshold": it is a DIFFERENT QUANTITY (one instrument's own value
+        // changing across the edge), which would be MISREAD as detection.
+        let both = (vec![0.5, 0.5], vec![0.5, 0.5]);
+        let scip_only = (vec![0.0, 1.0], vec![0.0, 1.0]);
+        let s = Sheaf::new(4, vec![(0, 1), (2, 3)], 2, 1, vec![both, scip_only]);
+        // v0,v2 = (1,0) "syn asserts, SCIP does not"; v1,v3 = (0,1), the exact opposite.
+        let x = [1.0, 0.0, 0.0, 1.0, 1.0, 0.0, 0.0, 1.0];
+        let r = s.edge_residuals(&x);
+        assert!(
+            r[0].abs() < TOL,
+            "the Both row must be BLIND to cross-instrument disagreement; got {}",
+            r[0]
+        );
+        assert!(
+            (r[1] - 1.0).abs() < TOL,
+            "the exclusive row reports a DIFFERENT quantity, not a detection; got {}",
+            r[1]
         );
     }
 
