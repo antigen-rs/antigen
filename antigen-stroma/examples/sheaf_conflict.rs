@@ -209,7 +209,49 @@ fn degenerate_baselines(edges: &[((String, String), Asserted)], tol: f64) {
 }
 
 /// Measure one edge set end to end: census, ranks at each tolerance, Euler self-check, cost.
-fn measure(label: &str, edges: &[((String, String), Asserted)]) {
+/// How much of the `Both` census is real corroboration versus bare-name coincidence?
+///
+/// syn matches call pairs by BARE NAME, so it cannot tell two same-named symbols apart. An edge labelled
+/// `Both` because syn "agrees" is only a verified same-symbol match when neither endpoint's bare name is
+/// shared with another antigen symbol. Where it is shared, syn's corroboration is a COINCIDENCE of names,
+/// not evidence about that edge — so the census must never be narrated as plain "instrument agreement"
+/// without this qualifier. Changes no rank/H⁰/H¹ number; it changes what the census MEANS.
+fn both_edges_ambiguity(
+    edges: &[((String, String), Asserted)],
+    classes: &HashMap<String, HashSet<String>>,
+) {
+    let colliding =
+        |sym: &str| bare_fn_name(sym).is_some_and(|b| classes.get(b).is_some_and(|c| c.len() >= 2));
+    let (mut ambiguous, mut both_total) = (0usize, 0usize);
+    for ((u, v), a) in edges {
+        if *a == Asserted::Both {
+            both_total += 1;
+            if colliding(u) || colliding(v) {
+                ambiguous += 1;
+            }
+        }
+    }
+    if both_total == 0 {
+        return;
+    }
+    println!(
+        "    ^ AMBIGUITY CAVEAT: {ambiguous} of {both_total} `Both` edges ({:.1}%) have >=1 ENDPOINT whose bare\n\
+         \x20     name is shared by >=2 callable DEFINITIONS in this index -- so syn's corroboration there is a\n\
+         \x20     name coincidence, not a verified same-symbol match. Only {} ({:.1}%) are unambiguous.\n\
+         \x20     (Counted PER EDGE over DEFINITION-symbols; a per-endpoint count, or a universe including\n\
+         \x20     non-definition occurrences, gives a materially different figure -- state the convention\n\
+         \x20     whenever this number is quoted. Changes no rank/H0/H1 value; it changes what the census MEANS.)",
+        pct(ambiguous, both_total),
+        both_total - ambiguous,
+        pct(both_total - ambiguous, both_total)
+    );
+}
+
+fn measure(
+    label: &str,
+    edges: &[((String, String), Asserted)],
+    classes: &HashMap<String, HashSet<String>>,
+) {
     let (mut both, mut syn_only, mut scip_only) = (0usize, 0usize, 0usize);
     for (_, a) in edges {
         match a {
@@ -254,6 +296,7 @@ fn measure(label: &str, edges: &[((String, String), Asserted)]) {
         "    SCIP ONLY          [0.0, 1.0] : {scip_only:6}  ({:.1}%)",
         pct(scip_only, e)
     );
+    both_edges_ambiguity(edges, classes);
 
     let dense_bytes = (e * 2 * v * 8) as f64;
     println!(
@@ -377,10 +420,21 @@ fn main() {
     for n in [200, 800, 2000] {
         cross_check_against_dense(&base, n, 1e-9);
     }
-    measure("EDGE SET 1: base (resolved SCIP Call edges only)", &base);
+    // The bare-name indiscernibility classes — needed by the census caveat (how much of `Both` is real
+    // corroboration vs name coincidence) as well as by the syn-only lifting further down.
+    let classes = fn_classes(scip_path);
+    measure(
+        "EDGE SET 1: base (resolved SCIP Call edges only)",
+        &base,
+        &classes,
+    );
 
     let union = extend_with_syn_only(base, scip_path, &scip_undirected, &syn_pairs);
-    measure("EDGE SET 2: union (base + liftable syn-only edges)", &union);
+    measure(
+        "EDGE SET 2: union (base + liftable syn-only edges)",
+        &union,
+        &classes,
+    );
 }
 
 /// Add the syn-only pairs that CAN be lifted to vertex pairs: both bare names must resolve to exactly ONE
