@@ -234,6 +234,44 @@ fn both_edges_ambiguity(
     if both_total == 0 {
         return;
     }
+    // CONFOUND CHECK. Collision-prone bare names (`new`, `default`, `get`) plausibly sit on HIGH-DEGREE
+    // hubs, and a high-degree vertex naturally sits on more cycles — so a "collision effect" on the rank
+    // surplus could be a DEGREE effect in disguise. Compare the degree distributions directly rather than
+    // reasoning about it: if they are close, the collision attribution survives; if collision-exposed
+    // endpoints are markedly hubbier, the surplus gap is confounded and must not be quoted as a collision
+    // finding.
+    let mut degree: HashMap<&str, usize> = HashMap::new();
+    for ((u, v), _) in edges {
+        *degree.entry(u.as_str()).or_default() += 1;
+        *degree.entry(v.as_str()).or_default() += 1;
+    }
+    let (mut coll_deg, mut uniq_deg): (Vec<usize>, Vec<usize>) = (Vec::new(), Vec::new());
+    let mut seen: HashSet<&str> = HashSet::new();
+    for ((u, v), a) in edges {
+        if *a != Asserted::Both {
+            continue;
+        }
+        for s in [u.as_str(), v.as_str()] {
+            if seen.insert(s) {
+                let d = degree.get(s).copied().unwrap_or(0);
+                if colliding(s) {
+                    coll_deg.push(d);
+                } else {
+                    uniq_deg.push(d);
+                }
+            }
+        }
+    }
+    let stats = |v: &mut Vec<usize>| -> (f64, usize) {
+        if v.is_empty() {
+            return (0.0, 0);
+        }
+        v.sort_unstable();
+        let mean = v.iter().sum::<usize>() as f64 / v.len() as f64;
+        (mean, v[v.len() / 2])
+    };
+    let (cm, cmed) = stats(&mut coll_deg);
+    let (um, umed) = stats(&mut uniq_deg);
     println!(
         "    ^ AMBIGUITY CAVEAT: {ambiguous} of {both_total} `Both` edges ({:.1}%) have >=1 ENDPOINT whose bare\n\
          \x20     name is shared by >=2 callable DEFINITIONS in this index -- so syn's corroboration there is a\n\
@@ -244,6 +282,16 @@ fn both_edges_ambiguity(
         pct(ambiguous, both_total),
         both_total - ambiguous,
         pct(both_total - ambiguous, both_total)
+    );
+    println!(
+        "    ^ DEGREE CONFOUND CHECK: collision-exposed endpoints  mean deg {cm:.1}, median {cmed}  (n={})\n\
+         \x20                            bare-name-unique endpoints mean deg {um:.1}, median {umed}  (n={})\n\
+         \x20     Collision-prone names sit on hubs, and hubs sit on more cycles -- so a 'collision effect' on\n\
+         \x20     the rank surplus can be a DEGREE effect in disguise. Close distributions => the collision\n\
+         \x20     attribution survives; markedly hubbier collision endpoints => the surplus gap is CONFOUNDED\n\
+         \x20     and must not be quoted as a collision finding.",
+        coll_deg.len(),
+        uniq_deg.len()
     );
 }
 
