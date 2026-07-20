@@ -295,6 +295,11 @@ fn main() {
     // Sorted, so the vertex numbering, the cross-check subgraphs, and every printed number are reproducible.
     let mut scip_sorted: Vec<&(String, String)> = scip_undirected.iter().collect();
     scip_sorted.sort_unstable();
+    // ⚠ READ THIS BEFORE INTERPRETING THE CENSUS. This loop iterates over SCIP-RESOLVED edges, so every
+    // edge here is SCIP-asserted BY CONSTRUCTION and `Asserted::SynOnly` is UNREACHABLE in the base set.
+    // The printed "syn-only = 0 (0.0%)" is therefore a fact about THIS CODE PATH, not about antigen's
+    // instrument coverage. (It was briefly mis-reported as a finding; caught by adversarial review.)
+    // Edge set 2 (the union) is the only one where all three labels can occur — read the census there.
     let base: Vec<((String, String), Asserted)> = scip_sorted
         .iter()
         .map(|(u, v)| {
