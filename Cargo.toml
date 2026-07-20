@@ -30,6 +30,20 @@ syn = { version = "2", features = ["full", "extra-traits", "visit"] }
 quote = "1"
 proc-macro2 = { version = "1", features = ["span-locations"] }
 walkdir = "2"
+# faer: sparse/dense linear algebra, pure Rust (no C/Fortran). DEV-ONLY, and deliberately so.
+# The hand-rolled sparse elimination in `sheaf::rank` is the SHIPPED path and is measured
+# sufficient at current scale (fill-in 0.30x, 6.3s, 0.2 MB on antigen's 17564-edge coboundary),
+# so faer is NOT here for performance -- claiming that would contradict our own measurement.
+# It is here to EXPERIMENT with three capabilities the hand-rolled path cannot provide:
+# least-squares (the graded per-edge residual `sheaf.rs` calls its PRIMARY output), a nullspace
+# BASIS (the actual global sections, not just dim H0), and the sheaf-Laplacian SPECTRUM (the
+# Hodge/Cheeger direction). Keeping it dev-only means zero consumer dependency surface and no
+# feature matrix; an example can run BOTH implementations as a differential oracle.
+# GRADUATION TRIGGER (do not let this drift either way): promote to a real, on-by-default
+# dependency the moment (a) a capability proven useful here must be callable by an ORGAN at
+# runtime (i.e. from the lib, not an example), or (b) the hand-rolled path hits a MEASURED wall
+# on a real corpus. Until then it stays dev-only; if neither trigger fires, drop it.
+faer = "0.23"
 clap = { version = "4", features = ["derive"] }
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
