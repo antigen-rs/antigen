@@ -315,8 +315,16 @@ fn both_edges_ambiguity(
          \x20     the defect and the signal are the same feature. Free improvement: row [1,-1] instead, kernel\n\
          \x20     span(1,1) -- the sheaf then constrains the syn-minus-SCIP IMBALANCE (verified non-degenerate,\n\
          \x20     rank 21). The real binding constraint is the SAME-R-on-both-endpoints convention, not\n\
-         \x20     edge_dim: only ker R_e can ever matter under it. Sheaf::new already takes (R_tail, R_head) as\n\
-         \x20     a PAIR -- it is build_sheaf below that collapses the regime by passing one map twice.",
+         \x20     edge_dim: only ker R_e can ever matter under it -- so every argument about the COEFFICIENTS\n\
+         \x20     was already empty; only the kernel LINE was ever in play. Sheaf::new already takes (R_tail,\n\
+         \x20     R_head) as a PAIR -- it is build_sheaf below that collapses the regime by passing one map\n\
+         \x20     twice.\n\
+         \x20     TRAP, if anyone does try edge_dim=2: padding every edge to a uniform 2x2 restriction gives\n\
+         \x20     each EXCLUSIVE edge a structurally-zero row, inflating dim H1 by EXACTLY the exclusive-edge\n\
+         \x20     count with zero real content (toy: 29 vs a true 13, inflation 16 = the exclusive count). At\n\
+         \x20     ~62% exclusive here that would present as '2x more conflict found' -- a pure padding\n\
+         \x20     artifact that looks like a discovery. Any pre/post H1 comparison across that change needs\n\
+         \x20     edge stalks sized to rank(R_e), never applied uniformly.",
         coll_deg.len(),
         uniq_deg.len()
     );
