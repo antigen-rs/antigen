@@ -286,10 +286,14 @@ fn both_edges_ambiguity(
     println!(
         "    ^ DEGREE CONFOUND CHECK: collision-exposed endpoints  mean deg {cm:.1}, median {cmed}  (n={})\n\
          \x20                            bare-name-unique endpoints mean deg {um:.1}, median {umed}  (n={})\n\
-         \x20     Collision-prone names sit on hubs, and hubs sit on more cycles -- so a 'collision effect' on\n\
-         \x20     the rank surplus can be a DEGREE effect in disguise. Close distributions => the collision\n\
-         \x20     attribution survives; markedly hubbier collision endpoints => the surplus gap is CONFOUNDED\n\
-         \x20     and must not be quoted as a collision finding.",
+         \x20     Collision-prone names DO sit on hubs, so a 'collision effect' on the rank surplus could be a\n\
+         \x20     DEGREE effect in disguise. TESTED AND REFUTED: a degree-MATCHED removal control (10 degree\n\
+         \x20     bins, matched per-bin counts, 10 seeds) gives surplus 1242 [1221,1264] -- HIGHER than the\n\
+         \x20     unmatched-random 1196, not closer to the targeted 977. Degree does not explain the gap.\n\
+         \x20     Four controls now agree (count-matched, degree-matched, bridge census, direct measurement).\n\
+         \x20     BOUNDED HEADLINE: collision-exposed edges are 73% of the Both-population but account for only\n\
+         \x20     ~15% of the disagreement surplus (219 of 1450) -- real, disproportionate, and far smaller\n\
+         \x20     than the census fraction suggests. Census contamination overstates SIGNAL contamination ~5x.",
         coll_deg.len(),
         uniq_deg.len()
     );
@@ -478,10 +482,29 @@ fn main() {
     );
 
     let union = extend_with_syn_only(base, scip_path, &scip_undirected, &syn_pairs);
-    measure(
-        "EDGE SET 2: union (base + liftable syn-only edges)",
-        &union,
-        &classes,
+    union_census_line(&union);
+}
+
+/// The union edge set, reported as ONE census line rather than a co-equal measurement.
+///
+/// **Deliberately demoted** (agreed with adversarial review, 2026-07-20). Only 14 syn-only pairs are liftable
+/// to vertex pairs, so the union perturbs the base edge set by 0.08%. Printing it with the same full
+/// tolerance sweep and baselines as the base invited reading it as a comparative finding, and a 0.08%
+/// perturbation supports no such claim. The counts stay — they say something real about how little of syn's
+/// exclusive view survives the lift — but the rank is a single line at a single tolerance.
+fn union_census_line(union: &[((String, String), Asserted)]) {
+    const TOL: f64 = 1e-9;
+    let sheaf = build_sheaf(union);
+    let r = sheaf.sparse_rank_total(TOL).rank;
+    let (v, e) = (sheaf.node_count(), sheaf.edge_count());
+    println!(
+        "\nunion edge set (base + liftable syn-only), NOT a comparative result — |V| {v}, |E| {e}, \
+         rank {r}, dim H^0 {}, dim H^1 {} [tol {TOL:.0e}]",
+        2 * v - r,
+        e - r
+    );
+    println!(
+        "  (a 0.08% edge perturbation; reported as a census line only, it supports no comparison to the base.)"
     );
 }
 

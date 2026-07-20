@@ -28,8 +28,16 @@
 //!   is never "avoid the blind direction" but **"is the blind direction disjoint from the failure-direction
 //!   being hunted?"** Worked counterexample from this very construction: `ker[0.5,0.5] = span{(1,-1)}` is
 //!   exactly the cross-instrument DISAGREEMENT axis, so `x_u=(1,0)` vs `x_v=(0,1)` — maximal disagreement —
-//!   yields a residual of exactly `0.0`, while exclusive rows return `1.0` as a false positive. Blind to the
-//!   intended target on 100% of edges.
+//!   yields a residual of exactly `0.0`, while exclusive rows return `1.0` on the SAME input. Blind to the
+//!   intended target on 100% of edges. The sharper defect is that the two readings are **INCOMMENSURATE**:
+//!   because different rows answer different questions on identical input, **no aggregate over a
+//!   mixed-edge-type residual vector is meaningful** — not a mean, a max, a threshold, or a ranking.
+//! - **A conflict visible at ONE vertex is not an obstruction.** Cross-instrument disagreement is a
+//!   *within-vertex* property (`s_v` vs `c_v`); sheaf gluing is a *between-vertex* condition. No restriction
+//!   row converts one into the other, so no choice of `R_e` could have worked — the kernel accident above was
+//!   the symptom, not the disease. **Cohomology measures the locally-consistent-but-globally-inconsistent**;
+//!   if you can see the phenomenon by looking at a single point, cohomology is the wrong instrument by
+//!   definition rather than by tuning. Check this BEFORE reaching for it.
 //! - **Evidence lives in the MORPHISMS or in the STALKS, never both from one source.** (A) morphisms: the
 //!   structural sheaf built here — legitimate, needs no `x`. (B) stalks: a Robinson-style observation sheaf,
 //!   where the morphisms come from the CODE and `x_v` is per-symbol evidence — the residual belongs to (B),
@@ -654,9 +662,12 @@ mod tests {
     #[test]
     fn edge_residuals_is_blind_to_cross_instrument_disagreement_at_vertex_dim_2() {
         // `ker[0.5,0.5] = span{(1,-1)}` IS the cross-instrument disagreement axis, so the `Both` row returns
-        // exactly 0.0 on MAXIMAL disagreement. The exclusive row returns 1.0 on the same input — and that is
-        // NOT "detection at a different threshold": it is a DIFFERENT QUANTITY (one instrument's own value
-        // changing across the edge), which would be MISREAD as detection.
+        // exactly 0.0 on MAXIMAL disagreement while the exclusive row returns 1.0 on the SAME input.
+        //
+        // Neither reading is "wrong" in isolation — the defect is that they are **INCOMMENSURATE**. Because
+        // the two rows answer different questions on identical input, NO aggregate over a mixed-edge-type
+        // residual vector is meaningful: not a mean, not a max, not a threshold, not a ranking. The scales
+        // do not correspond, so there is nothing to compare across edge types.
         let both = (vec![0.5, 0.5], vec![0.5, 0.5]);
         let scip_only = (vec![0.0, 1.0], vec![0.0, 1.0]);
         let s = Sheaf::new(4, vec![(0, 1), (2, 3)], 2, 1, vec![both, scip_only]);
@@ -670,7 +681,8 @@ mod tests {
         );
         assert!(
             (r[1] - 1.0).abs() < TOL,
-            "the exclusive row reports a DIFFERENT quantity, not a detection; got {}",
+            "exclusive row reads 1.0 on the same input -- INCOMMENSURATE with the Both row, so no
+             aggregate over mixed edge types is meaningful; got {}",
             r[1]
         );
     }
