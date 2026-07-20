@@ -108,7 +108,7 @@ mod tests {
     fn parameter_view_is_the_transpose() {
         // object-view {a:{1,2}, b:{2}} transposes to parameter-view {1:{a}, 2:{a,b}}.
         let pv = soft_of(&[("a", &[1, 2]), ("b", &[2])]).parameter_view();
-        assert_eq!(pv[&1], ["a"].iter().map(ToString::to_string).collect());
+        assert_eq!(pv[&1], BTreeSet::from(["a".to_string()]));
         assert_eq!(pv[&2], ["a", "b"].iter().map(ToString::to_string).collect());
     }
 
@@ -119,16 +119,13 @@ mod tests {
             merged.objects()["a"],
             [1, 2].into_iter().collect::<BTreeSet<u8>>()
         );
-        assert_eq!(
-            merged.objects()["b"],
-            [3].into_iter().collect::<BTreeSet<u8>>()
-        );
+        assert_eq!(merged.objects()["b"], BTreeSet::from([3u8]));
     }
 
     #[test]
     fn absence_facts_are_a_soft_set_and_corroboration_is_the_restriction() {
         // The bind, concretely: AbsenceFacts ARE a soft set, and its restriction == AbsenceFact::is_corroborated.
-        let facts = vec![
+        let facts = [
             AbsenceFact {
                 subject: "a".into(),
                 witnesses: BTreeSet::from([AbsenceWitness::DeadCode, AbsenceWitness::NotExecuted]),

@@ -117,7 +117,7 @@ mod tests {
     #[test]
     fn a_distinctive_singleton_class_can_never_straddle() {
         // Each element is its own class → a distinctive feature fully determines membership.
-        let approx = approximate(["a", "b", "c"], &concept(&["a", "c"]), |e| e.to_string());
+        let approx = approximate(["a", "b", "c"], &concept(&["a", "c"]), ToString::to_string);
         assert_eq!(approx.lower, concept(&["a", "c"]));
         assert!(approx.boundary.is_empty());
         assert!((approx.accuracy() - 1.0).abs() < f64::EPSILON);
