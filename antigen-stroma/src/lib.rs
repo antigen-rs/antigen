@@ -52,6 +52,7 @@ pub mod node;
 pub mod read;
 pub mod rough;
 pub mod scip;
+pub mod sheaf;
 pub mod signal;
 pub mod soft;
 pub mod syn_ingest;
