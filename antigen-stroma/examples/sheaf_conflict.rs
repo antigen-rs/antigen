@@ -294,11 +294,18 @@ fn both_edges_ambiguity(
          \x20     falsifiable prediction (bias sampling toward the low-degree/unique profile => surplus should\n\
          \x20     fall to ~1075 [980,1160] if hub-concentration is the mechanism; measured ~1004-1008, inside\n\
          \x20     the interval -- so the mechanism is predictive, not merely invoked).\n\
-         \x20     BOUNDED HEADLINE: collision-exposed edges are 73% of the Both-population but account for only\n\
-         \x20     ~18% of the disagreement surplus (263 of 1450, against the DEGREE-MATCHED baseline ~1240 --\n\
-         \x20     the unmatched-random baseline is the wrong counterfactual because the collision set is itself\n\
-         \x20     high-degree). Census contamination overstates SIGNAL contamination ~5-6x; 67.4% of the\n\
-         \x20     surplus survives even the maximally pessimistic correction.",
+         \x20     BOUNDED HEADLINE (a RANGE, deliberately, not a point): collision-exposed edges are 73% of the\n\
+         \x20     Both-population but account for only 15.1%-18.3% of the 1450 disagreement surplus, spanning\n\
+         \x20     the two defensible baselines (count-matched ~1196 and degree-matched ~1240; the latter is the\n\
+         \x20     more principled since the collision set is itself 2.31x higher-degree). THE CONCLUSION HOLDS\n\
+         \x20     AT BOTH ENDS -- that invariance across baselines is itself the robustness result, and a point\n\
+         \x20     estimate would discard it. Census contamination overstates SIGNAL contamination ~5-6x;\n\
+         \x20     67.4% of the surplus survives even the maximally pessimistic correction. Bridges are bounded\n\
+         \x20     by arithmetic at <=~13% of the gap.\n\
+         \x20     OPEN, and NOT a measurement question: R_e=[0.5,0.5] annihilates the disagreement axis on every\n\
+         \x20     corroborated edge, so this lens sees disagreement TOPOLOGY and discards disagreement\n\
+         \x20     MAGNITUDE -- 1450 is real but a shadow of the target. The fix is edge_dim=2 (retain both\n\
+         \x20     instrument coordinates instead of collapsing one); never costed. Roadmap, not a caveat.",
         coll_deg.len(),
         uniq_deg.len()
     );
