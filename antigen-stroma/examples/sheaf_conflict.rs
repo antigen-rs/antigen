@@ -290,10 +290,15 @@ fn both_edges_ambiguity(
          \x20     DEGREE effect in disguise. TESTED AND REFUTED: a degree-MATCHED removal control (10 degree\n\
          \x20     bins, matched per-bin counts, 10 seeds) gives surplus 1242 [1221,1264] -- HIGHER than the\n\
          \x20     unmatched-random 1196, not closer to the targeted 977. Degree does not explain the gap.\n\
-         \x20     Four controls now agree (count-matched, degree-matched, bridge census, direct measurement).\n\
+         \x20     Four independent lines agree: count-matched, degree-matched, bridge census, and an INVERTED\n\
+         \x20     falsifiable prediction (bias sampling toward the low-degree/unique profile => surplus should\n\
+         \x20     fall to ~1075 [980,1160] if hub-concentration is the mechanism; measured ~1004-1008, inside\n\
+         \x20     the interval -- so the mechanism is predictive, not merely invoked).\n\
          \x20     BOUNDED HEADLINE: collision-exposed edges are 73% of the Both-population but account for only\n\
-         \x20     ~15% of the disagreement surplus (219 of 1450) -- real, disproportionate, and far smaller\n\
-         \x20     than the census fraction suggests. Census contamination overstates SIGNAL contamination ~5x.",
+         \x20     ~18% of the disagreement surplus (263 of 1450, against the DEGREE-MATCHED baseline ~1240 --\n\
+         \x20     the unmatched-random baseline is the wrong counterfactual because the collision set is itself\n\
+         \x20     high-degree). Census contamination overstates SIGNAL contamination ~5-6x; 67.4% of the\n\
+         \x20     surplus survives even the maximally pessimistic correction.",
         coll_deg.len(),
         uniq_deg.len()
     );
