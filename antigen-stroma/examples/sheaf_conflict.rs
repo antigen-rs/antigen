@@ -21,7 +21,11 @@
 //!    symbol (the rough-set *lower* residue; a colliding bare name cannot be lifted to a vertex pair).
 //!
 //! Rank over floats is a THRESHOLDING DECISION, so every dimension is reported with its tolerance and the
-//! run repeats at three tolerances.
+//! run repeats at **each configured tolerance** (see `TOLERANCES`) — deliberately phrased without a count,
+//! because the previous wording named a literal number and went stale the moment the sweep was widened.
+//! The sweep runs past `0.5` on purpose: the corroborated rows carry evidence weight `0.5`, so a relative
+//! tolerance above that swallows genuine structure — which is what makes the thresholding path demonstrably
+//! live rather than inert.
 //!
 //! Usage: `cargo run --release -p antigen-stroma --example sheaf_conflict -- [path/to.scip]`
 
