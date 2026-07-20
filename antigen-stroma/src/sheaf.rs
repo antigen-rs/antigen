@@ -10,13 +10,30 @@
 //! H¹ = coker δ⁰ (edge-data no vertex-assignment can explain — the irreducible obstruction)
 //! ```
 //!
-//! **Two disciplines are baked in, both learned the hard way (2026-07-19):**
-//! 1. **The graded residual is PRIMARY, the integer dimensions are secondary.** Over floating-point evidence
-//!    `rank` is a *thresholding decision*, so reporting `dim H¹ = 3` without a tolerance is an over-claim.
-//!    The per-edge residual also *localizes* the conflict to a specific edge, which is what an organ needs to
-//!    report — a dimension says conflict exists but not where.
+//! **Disciplines baked in, learned the hard way:**
+//! 1. **`dim H⁰` / `dim H¹` are the primary — and currently the ONLY — available output. The graded per-edge
+//!    residual is DEFERRED.** (This inverts an earlier claim in these docs; corrected 2026-07-20.) The
+//!    dimensions are functions of the *structure* and need no data. A residual is a function of *data* — an
+//!    observed `x` in the stalks — and this two-instrument construction has none, because it spends the
+//!    instrument evidence on the RESTRICTION MAPS and leaves the stalks empty. Improvising an `x` for such a
+//!    sheaf only re-derives the census the morphisms came from. Still report a tolerance alongside any
+//!    dimension: over floats `rank` is a thresholding decision, not a fact.
 //! 2. **Split by connected component first.** `δ⁰` is block-diagonal over components, so ranks and dimensions
 //!    simply add. Exact, free, and the single biggest scaling win.
+//!
+//! **Two design laws, general and reusable:**
+//! - **An edge is blind to `ker F_{v⊴e}`.** With vertex stalk `ℝ²` and edge stalk `ℝ`, every restriction is
+//!   1×2 and *always* has a 1-dimensional kernel — blindness cannot be avoided, only AIMED. A restriction map
+//!   earns its keep by HAVING a kernel (that is what makes `H¹` structure-dependent), so the design question
+//!   is never "avoid the blind direction" but **"is the blind direction disjoint from the failure-direction
+//!   being hunted?"** Worked counterexample from this very construction: `ker[0.5,0.5] = span{(1,-1)}` is
+//!   exactly the cross-instrument DISAGREEMENT axis, so `x_u=(1,0)` vs `x_v=(0,1)` — maximal disagreement —
+//!   yields a residual of exactly `0.0`, while exclusive rows return `1.0` as a false positive. Blind to the
+//!   intended target on 100% of edges.
+//! - **Evidence lives in the MORPHISMS or in the STALKS, never both from one source.** (A) morphisms: the
+//!   structural sheaf built here — legitimate, needs no `x`. (B) stalks: a Robinson-style observation sheaf,
+//!   where the morphisms come from the CODE and `x_v` is per-symbol evidence — the residual belongs to (B),
+//!   where it is non-circular by construction.
 //!
 //! **Trap (Hansen–Ghrist Thm 4.2/4.3):** do NOT apply Kron reduction / graph sparsification to shrink this.
 //! It is valid only when vertex stalks have dimension ≤ 1 and fails for sheaves in general — the
