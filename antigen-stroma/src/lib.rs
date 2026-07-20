@@ -39,6 +39,7 @@ pub mod db;
 
 pub mod base;
 pub mod constitute;
+pub mod curvature;
 pub mod dead_code;
 pub mod deferred;
 pub mod ds;
