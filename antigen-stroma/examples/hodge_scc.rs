@@ -1,6 +1,6 @@
 //! Hodge exploration (dep-free) — where do antigen's feedback cycles LIVE?
 //!
-//! `hodge_betti` (`163cff3`) gave β₁ = 13731 = the harmonic dimension on the bare graph, but that is the
+//! `hodge_betti` gave β₁ = 13731 on antigen (`163cff3`) = the harmonic dimension on the bare graph, but that is the
 //! trivial leg (the whole cycle space; nb 030 design round). Before the real Hodge build (which needs a
 //! sparse-linalg dep for the 2-complex nullspace), this localizes the cyclic structure with pure graph
 //! algorithmics: the **strongly-connected components** are where directed feedback lives (a node can reach
@@ -131,7 +131,7 @@ fn main() {
     );
     println!(
         "\n  => the directed feedback (a node reaching itself) concentrates in {} SCC(s); the giant SCC holds\n\
-         \x20    {:.1}% of nodes. The bare-graph β₁=13731 counts UNDIRECTED cycles (broader), but these SCCs are\n\
+         \x20    {:.1}% of nodes. The bare-graph β₁ (see `hodge_betti`) counts UNDIRECTED cycles (broader), but these SCCs are\n\
          \x20    where the genuine loops live — the loci the real Hodge build's harmonic permutation-test will\n\
          \x20    score against (does harmonic support localize here beyond a random baseline?). Dep-free.",
         nontrivial.len(),
