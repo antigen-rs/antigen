@@ -152,12 +152,14 @@ fn report(so: &SynOnly, scip_symbols: usize) {
         pct(so.external_1_none, total)
     );
     let jump = if so.lifted_1_1 == 0 {
-        0.0
+        // Projected 0 is not a 0x jump -- it is the MOST extreme case: every syn-only edge was invisible
+        // under ingest-projection (nothing resolved 1-1, e.g. a derive-macro-heavy crate like serde).
+        format!("{total}x (from nothing -- no syn-only edge lifted at all under projection)")
     } else {
-        total as f64 / so.lifted_1_1 as f64
+        format!("{:.0}x", total as f64 / so.lifted_1_1 as f64)
     };
     println!(
-        "\n  => syn-only: {} (projected) -> {total} (hold-all), a {jump:.0}x jump.",
+        "\n  => syn-only: {} (projected) -> {total} (hold-all), a {jump} jump.",
         so.lifted_1_1
     );
     println!(
