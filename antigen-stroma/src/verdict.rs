@@ -5,7 +5,7 @@
 //! The evidence axes are held apart, each its own multi-witness accumulation: **T/I** (presence) on
 //! [`EdgeFacts`](crate::base::facts::EdgeFacts) via [`WitnessSource`](crate::base::facts::WitnessSource),
 //! **F** (absence) on [`AbsenceFacts`](crate::base::facts::AbsenceFacts) via
-//! [`AbsenceWitness`](crate::base::facts::AbsenceWitness). A unified `(T, I, F)` verdict for a subject is a
+//! [`AbsenceWitness`]. A unified `(T, I, F)` verdict for a subject is a
 //! JOIN across the axes.
 //!
 //! ## The first join: the F→T bridge (def-span containment)

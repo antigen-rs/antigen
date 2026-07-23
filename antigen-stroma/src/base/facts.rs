@@ -288,7 +288,7 @@ pub struct AbsenceFact {
 impl AbsenceFact {
     /// `true` iff more than one independent instrument witnessed this absence — a corroborated F.
     /// Reported, never auto-promoted: the strength is an organ's to weigh (mirrors
-    /// [`EdgeFact::is_corroborated`]).
+    /// [`EdgeFact::is_cross_witnessed`]).
     #[must_use]
     pub fn is_corroborated(&self) -> bool {
         self.witnesses.len() >= 2
