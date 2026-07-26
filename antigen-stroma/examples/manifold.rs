@@ -48,9 +48,11 @@ fn append(store: &Path, drops: &[Droplet]) -> std::io::Result<usize> {
     let f = OpenOptions::new().create(true).append(true).open(store)?;
     let mut w = BufWriter::new(f);
     for d in drops {
+        // 6-field record (A6 shape): addr, source, content, t, tier, derived_from(';'-joined).
+        // Raw/blind sources are tier-0 with no derived_from; organs write their own tier-N records.
         writeln!(
             w,
-            "{}\t{}\t{}\t{}",
+            "{}\t{}\t{}\t{}\t0\t",
             san(&d.addr),
             d.source,
             san(&d.content),
@@ -69,7 +71,8 @@ fn read_at(store: &Path, t_max: i64) -> Vec<(String, String, String, i64)> {
         return out;
     };
     for line in BufReader::new(f).lines().map_while(Result::ok) {
-        let mut it = line.splitn(4, '\t');
+        // Take the first 4 fields; tier + derived_from (fields 5-6, A6) are read only by `cone`.
+        let mut it = line.split('\t');
         if let (Some(a), Some(s), Some(c), Some(t)) = (it.next(), it.next(), it.next(), it.next()) {
             let t: i64 = t.parse().unwrap_or(0);
             if t <= t_max {
@@ -737,9 +740,204 @@ fn quiet(store: &Path) {
     );
 }
 
+/// The first antigen ORGAN — recognize + write-back, closing the tier-loop. Reads each file-cell's
+/// stacked risk signals from the densified pile (git churn, bug-FIX history via `touched:fix`,
+/// failure-sites via `has-failsite` edges), RECOGNIZES where >=2 stack as a defect-prone nexus, and
+/// WRITES the judgment BACK as `organ:nexus` droplets (a new tier-1 source — re-fold to see the loop).
+/// It is a presents(risk?) QUESTION — surface-all, route-to-human, NOT a verdict; it ships the PARTIAL
+/// signals that stacked (per ratified ADR-002), never a scalar. detect(stromix) read → recognize(antigen) written.
+#[allow(clippy::cast_precision_loss)] // display-only counts
+fn nexus(store: &Path) {
+    const CHURN_CUT: usize = 10;
+    const FIX_CUT: usize = 2;
+    const FAIL_CUT: usize = 1;
+    let all = read_at(store, i64::MAX);
+    let now_t = all.iter().map(|(_, _, _, t)| *t).max().unwrap_or(0);
+    let mut touch: HashMap<String, usize> = HashMap::new();
+    let mut fix: HashMap<String, usize> = HashMap::new();
+    let mut fail: HashMap<String, usize> = HashMap::new();
+    let mut fail_edges: HashMap<String, Vec<String>> = HashMap::new(); // file -> the has-failsite edge cells (provenance)
+    let mut deleted: HashSet<String> = HashSet::new();
+    for (addr, source, content, _t) in &all {
+        if let Some(f) = addr.strip_prefix("node|file|") {
+            if source == "git" {
+                if content == "deleted" {
+                    deleted.insert(f.to_string());
+                } else if content.starts_with("touched") {
+                    *touch.entry(f.to_string()).or_default() += 1;
+                    if content == "touched:fix" {
+                        *fix.entry(f.to_string()).or_default() += 1;
+                    }
+                }
+            }
+        } else if let Some(rest) = addr.strip_prefix("edge|has-failsite|") {
+            if let Some((f, _)) = rest.split_once('|') {
+                *fail.entry(f.to_string()).or_default() += 1;
+                let v = fail_edges.entry(f.to_string()).or_default();
+                if !v.contains(addr) {
+                    v.push(addr.clone()); // distinct failure-class edge-cells only
+                }
+            }
+        }
+    }
+    // RECOGNIZE: a file where >=2 of {churn, bug-fix history, failure-sites} STACK = a defect-prone nexus.
+    let mut nexi: Vec<(String, usize, usize, usize)> = Vec::new();
+    let files: HashSet<&String> = touch.keys().chain(fail.keys()).collect();
+    for f in files {
+        if deleted.contains(f) {
+            continue;
+        }
+        let (tc, fx, fl) = (
+            touch.get(f).copied().unwrap_or(0),
+            fix.get(f).copied().unwrap_or(0),
+            fail.get(f).copied().unwrap_or(0),
+        );
+        let signals =
+            usize::from(tc >= CHURN_CUT) + usize::from(fx >= FIX_CUT) + usize::from(fl >= FAIL_CUT);
+        if signals >= 2 {
+            nexi.push((f.clone(), tc, fx, fl));
+        }
+    }
+    nexi.sort_by_key(|(_, tc, fx, fl)| std::cmp::Reverse((*fl, *fx, *tc)));
+
+    // WRITE BACK: 6-field tier-1 records (A6 shape) carrying `derived_from` — the cone lineage down to
+    // raw. The organ read tier-0 and writes tier-1; its output records WHICH cells it rests on
+    // (the file's git/tree cell + its has-failsite edges), so `cone` can walk fat-end → raw.
+    let n = nexi.len();
+    if let Ok(fh) = OpenOptions::new().create(true).append(true).open(store) {
+        let mut w = BufWriter::new(fh);
+        for (f, tc, fx, fl) in &nexi {
+            let mut sigs = Vec::new();
+            if *tc >= CHURN_CUT {
+                sigs.push(format!("churn:{tc}"));
+            }
+            if *fx >= FIX_CUT {
+                sigs.push(format!("fix:{fx}"));
+            }
+            if *fl >= FAIL_CUT {
+                sigs.push(format!("fail:{fl}"));
+            }
+            let mut df = vec![format!("node|file|{f}")]; // git churn/fix + tree existence live here
+            if let Some(edges) = fail_edges.get(f) {
+                df.extend(edges.iter().cloned()); // the failure-site edges it rests on
+            }
+            let _ = writeln!(
+                w,
+                "{}\torgan:nexus\t{}\t{}\t1\t{}",
+                san(&format!("node|file|{f}")),
+                san(&format!("presents:risk[{}]", sigs.join(","))),
+                now_t,
+                df.join(";")
+            );
+        }
+        let _ = w.flush();
+    }
+
+    println!(
+        "== organ:nexus — presents(risk?), a QUESTION not a verdict (route-to-human): {} ==\n",
+        store.display()
+    );
+    println!(
+        "  recognition: a file where >=2 of {{ churn>={CHURN_CUT}, fix-history>={FIX_CUT}, failure-sites>={FAIL_CUT} }} STACK"
+    );
+    println!("  defect-prone nexi surfaced (partial signals, no scalar): {n}\n");
+    for (f, tc, fx, fl) in nexi.iter().take(20) {
+        println!("      churn:{tc:<4} fix:{fx:<3} fail:{fl:<3}  {f}");
+    }
+    println!(
+        "\n  wrote {n} `organ:nexus` droplets BACK into the manifold (tier-1) — re-fold to see the loop: the organ's recognition is now a source."
+    );
+}
+
+/// A full 6-field record: `(source, content, t, tier, derived_from)`.
+type FullRec = (String, String, i64, u32, Vec<String>);
+
+/// Read the full A6-shaped records (incl. `tier` + `derived_from`), grouped by cell address.
+fn read_full(store: &Path) -> HashMap<String, Vec<FullRec>> {
+    let mut m: HashMap<String, Vec<FullRec>> = HashMap::new();
+    let Ok(f) = std::fs::File::open(store) else {
+        return m;
+    };
+    for line in BufReader::new(f).lines().map_while(Result::ok) {
+        let p: Vec<&str> = line.split('\t').collect();
+        if p.len() < 4 {
+            continue;
+        }
+        let tier = p.get(4).and_then(|s| s.parse().ok()).unwrap_or(0u32);
+        let df: Vec<String> = p.get(5).map_or_else(Vec::new, |s| {
+            if s.is_empty() {
+                Vec::new()
+            } else {
+                s.split(';').map(String::from).collect()
+            }
+        });
+        m.entry(p[0].to_string()).or_default().push((
+            p[1].to_string(),
+            p[2].to_string(),
+            p[3].parse().unwrap_or(0),
+            tier,
+            df,
+        ));
+    }
+    m
+}
+
+/// Cone VIEW: walk `derived_from` from a fat-end cell down to raw — A3 provenance-tiered, the
+/// substrate's own grounding chain (stromrez `chain` generalized to the whole store). Shows how a
+/// tier-N recognition rests, all the way down, on tier-0 data.
+fn cone(store: &Path, target: &str) {
+    let full = read_full(store);
+    if !full.contains_key(target) {
+        println!("no cell '{target}' (try a `node|file|...` that organ:nexus flagged)");
+        return;
+    }
+    println!("== cone: {target}  (fat end -> raw) ==\n");
+    let mut seen = HashSet::new();
+    walk_cone(&full, target, 0, &mut seen);
+}
+
+fn walk_cone(
+    full: &HashMap<String, Vec<FullRec>>,
+    addr: &str,
+    depth: usize,
+    seen: &mut HashSet<String>,
+) {
+    let indent = "  ".repeat(depth);
+    if !seen.insert(addr.to_string()) {
+        return; // already shown (e.g. an organ resting on its own cell)
+    }
+    let Some(recs) = full.get(addr) else {
+        println!("{indent}[absent] {addr}");
+        return;
+    };
+    let maxtier = recs.iter().map(|r| r.3).max().unwrap_or(0);
+    let mut srcs: Vec<&str> = recs.iter().map(|r| r.0.as_str()).collect();
+    srcs.sort_unstable();
+    srcs.dedup();
+    let rep = recs.iter().max_by_key(|r| r.3).map_or("", |r| r.1.as_str());
+    println!(
+        "{indent}[t{maxtier}] {addr}  <{}>  {rep}  ({} rec)",
+        srcs.join(","),
+        recs.len()
+    );
+    let mut df_all: Vec<String> = Vec::new();
+    for r in recs {
+        for d in &r.4 {
+            if d != addr && !df_all.contains(d) {
+                df_all.push(d.clone());
+            }
+        }
+    }
+    if depth < 8 {
+        for d in df_all {
+            walk_cone(full, &d, depth + 1, seen);
+        }
+    }
+}
+
 fn main() {
     let args: Vec<String> = std::env::args().skip(1).collect();
-    let usage = "usage: manifold <store> derive <repo> <source> [scip]  |  manifold <store> {fold|timeline|quiet|dead}\n  sources: git, tree, scip <scip-path>";
+    let usage = "usage: manifold <store> derive <repo> <source> [scip]  |  manifold <store> {fold|timeline|quiet|dead|nexus}  |  manifold <store> cone <cell>\n  sources: git, tree, scip <scip-path>";
     let Some(store) = args.first() else {
         eprintln!("{usage}");
         std::process::exit(2);
@@ -791,6 +989,16 @@ fn main() {
         Some("timeline") => timeline(store),
         Some("quiet") => quiet(store),
         Some("dead") => dead(store),
+        Some("nexus") => nexus(store),
+        Some("cone") => {
+            let Some(target) = args.get(2) else {
+                eprintln!(
+                    "cone needs a <cell> address, e.g. `node|file|antigen-macros/src/parse.rs`"
+                );
+                std::process::exit(2);
+            };
+            cone(store, target);
+        },
         _ => {
             eprintln!("{usage}");
             std::process::exit(2);
