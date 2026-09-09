@@ -145,7 +145,7 @@ const fn undirected(src: usize, dst: usize) -> Option<(usize, usize)> {
 }
 
 /// Union-find root with path compression.
-fn uf_find(parent: &mut [usize], start: usize) -> usize {
+const fn uf_find(parent: &mut [usize], start: usize) -> usize {
     let mut root = start;
     while parent[root] != root {
         root = parent[root];

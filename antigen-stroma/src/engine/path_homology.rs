@@ -202,7 +202,7 @@ fn add_coeff(
 }
 
 /// Union–find root with path halving.
-fn uf_find(parent: &mut [usize], x: usize) -> usize {
+const fn uf_find(parent: &mut [usize], x: usize) -> usize {
     let mut x = x;
     while parent[x] != x {
         parent[x] = parent[parent[x]];

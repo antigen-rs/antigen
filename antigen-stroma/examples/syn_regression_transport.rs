@@ -455,7 +455,7 @@ struct TEdge {
 /// own fundamental 2-cycle). Per generator, the holonomy is the ordered transport product around the loop;
 /// returns `rank(H−I)` per independent cycle. `defect = rank(H−I)` is basepoint- and orientation-invariant
 /// (conjugation + inversion invariant), so the per-cycle number is well defined.
-fn uf_find(p: &mut [usize], x: usize) -> usize {
+const fn uf_find(p: &mut [usize], x: usize) -> usize {
     let mut r = x;
     while p[r] != r {
         r = p[r];

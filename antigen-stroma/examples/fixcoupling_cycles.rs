@@ -246,7 +246,7 @@ const fn undirected(a: usize, b: usize) -> Option<(usize, usize)> {
     }
 }
 
-fn uf_find(parent: &mut [usize], start: usize) -> usize {
+const fn uf_find(parent: &mut [usize], start: usize) -> usize {
     let mut root = start;
     while parent[root] != root {
         root = parent[root];

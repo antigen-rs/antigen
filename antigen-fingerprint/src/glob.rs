@@ -23,7 +23,7 @@
 /// assert!(!glob_match_ident("Foo", "Bar"));
 /// ```
 #[must_use]
-pub fn glob_match_ident(pattern: &str, name: &str) -> bool {
+pub const fn glob_match_ident(pattern: &str, name: &str) -> bool {
     // Two-pointer with backtracking: standard wildcard match.
     // O(p * n) worst case; fine for identifier-length inputs.
     let p_bytes = pattern.as_bytes();
