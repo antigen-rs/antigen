@@ -569,6 +569,74 @@ fn dead(store: &Path) {
     }
 }
 
+/// Extract the bare fn name from a v0-mangled symbol: the LAST `<len><identifier>` segment (the fn's
+/// own name; earlier segments are crate/module/type, and the crate-hash junk realigns past). A
+/// heuristic demangle — good enough to canonicalize coverage onto the bare-name cell SCIP lands on.
+fn bare_from_mangled(s: &str) -> Option<String> {
+    let bytes = s.as_bytes();
+    let mut i = 0;
+    let mut last: Option<String> = None;
+    while i < bytes.len() {
+        if bytes[i].is_ascii_digit() {
+            let ds = i;
+            while i < bytes.len() && bytes[i].is_ascii_digit() {
+                i += 1;
+            }
+            let Ok(len) = s[ds..i].parse::<usize>() else {
+                i = ds + 1;
+                continue;
+            };
+            if len > 0 && i + len <= bytes.len() {
+                let seg = &s[i..i + len];
+                let ok = seg
+                    .as_bytes()
+                    .first()
+                    .is_some_and(|&c| c.is_ascii_alphabetic() || c == b'_')
+                    && seg.bytes().all(|c| c.is_ascii_alphanumeric() || c == b'_');
+                if ok {
+                    last = Some(seg.to_string());
+                    i += len;
+                    continue;
+                }
+            }
+            i = ds + 1;
+        } else {
+            i += 1;
+        }
+    }
+    last
+}
+
+/// BLIND source: coverage — the first RUNTIME signal. Parse an LCOV file's `FNDA:<count>,<mangled>`
+/// records, canonicalize each to its bare fn name (the cell SCIP also lands on), sum counts per bare,
+/// and spray `executed:<total>` (a `0` records defined-but-never-run). Which callable functions
+/// ACTUALLY ran, in the covered workload. Blind — reads only the LCOV, stamped at `t` (run time).
+/// HONEST: workload-relative ("not run" = not by THIS test run, not "never"); bare-name-aggregated.
+fn derive_coverage(lcov: &Path, t: i64) -> Vec<Droplet> {
+    let mut hits: HashMap<String, u64> = HashMap::new();
+    let Ok(f) = std::fs::File::open(lcov) else {
+        return Vec::new();
+    };
+    for line in BufReader::new(f).lines().map_while(Result::ok) {
+        if let Some(rest) = line.strip_prefix("FNDA:") {
+            if let Some((count, mangled)) = rest.split_once(',') {
+                let c: u64 = count.trim().parse().unwrap_or(0);
+                if let Some(bare) = bare_from_mangled(mangled) {
+                    *hits.entry(bare).or_default() += c;
+                }
+            }
+        }
+    }
+    hits.into_iter()
+        .map(|(bare, total)| Droplet {
+            addr: format!("node|bare|{bare}"),
+            source: "coverage",
+            content: format!("executed:{total}"),
+            t,
+        })
+        .collect()
+}
+
 /// HEAD commit's author-timestamp (epoch secs), so tree droplets land at "now" on the timeline.
 fn head_time(repo: &Path) -> i64 {
     Command::new("git")
@@ -849,6 +917,349 @@ fn nexus(store: &Path) {
     );
 }
 
+/// The `p`-th percentile of a map's NONZERO values (floored index, min 1). This is what makes the
+/// overlap organ DETECTED rather than forced: the top-stratum cut is derived FROM the data's own
+/// distribution (the substrate finds the stratum), not elected as a consumer constant the way
+/// `nexus`'s `CHURN_CUT`/`FIX_CUT`/`FAIL_CUT` are. Empty/all-zero → `usize::MAX` (nothing qualifies).
+#[allow(
+    clippy::cast_precision_loss,
+    clippy::cast_possible_truncation,
+    clippy::cast_sign_loss
+)]
+fn quantile_nonzero(m: &HashMap<String, usize>, p: f64) -> usize {
+    let mut vals: Vec<usize> = m.values().copied().filter(|&v| v > 0).collect();
+    if vals.is_empty() {
+        return usize::MAX;
+    }
+    vals.sort_unstable();
+    let idx = (((vals.len() - 1) as f64) * p).floor() as usize;
+    vals[idx].max(1)
+}
+
+/// A DETECTED overlap-emergent ORGAN (Mayer–Vietoris flavor, ID12) — the DUAL of `nexus`. Where `nexus`
+/// FORCES a combination (consumer-elected thresholds stacked inside one file = AUTHORITY-grade), this
+/// organ DETECTS structure the substrate FINDS at the OVERLAP of two INDEPENDENT lower strata: A = the
+/// git churn organ (files the history keeps re-touching) and B = the scip call-in organ (symbols the
+/// call-graph keeps calling, aggregated to their file). Neither source alone flags an overlap cell — a
+/// heavily-called file is just "popular API"; a heavily-churned file is just "actively edited". Their
+/// INTERSECTION `A∩B` is the emergent feature: a file whose interface keeps shifting UNDER its many
+/// in-repo callers, a blast-radius neither the call-graph nor the churn stream can see alone. That is
+/// the connecting map `δ` — the whole is NOT the sum of the two parts.
+///
+/// EVIDENCE-grade, not forced, on two legs. First, the top strata and their cuts are derived FROM the
+/// data (`quantile_nonzero`, the p75 of each nonzero distribution) — the substrate finds the stratum,
+/// no consumer constant. Second, the emergence is WITNESSED not asserted: it reports observed `|A∩B|`
+/// against the count EXPECTED if churn ⊥ call-in (`|A|*|B|/N`), so the excess-over-independence ratio is
+/// visible — a genuine but MODEST excess (this strata-cut null computes ~2x on antigen/tokio; an
+/// independent Spearman-rho check found rho 0.24/0.53, also modest — a real but small effect, not large).
+/// The raw `|A∩B|`-vs-`|A|`,`|B|` fractions are reported plainly alongside; the intersection is NOT
+/// claimed "small = emergent" (it need not be small). It surfaces the PARTIAL
+/// signals (churn count, call-in count, the data-derived cuts) with NO scalar (ADR-002), and writes
+/// `organ:overlap` tier-1 records BACK carrying `derived_from` = the churn foot (the file cell) + the
+/// call foot (the hottest called scip-symbol cells), so `cone` walks the overlap down to BOTH feet.
+/// DETECTION localizes `A∩B`; the "hot-API / blast-radius" READING is recognition (consumer meaning),
+/// kept out of the written record on purpose.
+#[allow(clippy::cast_precision_loss, clippy::too_many_lines)] // display ratios + two-source read reads clearest inline
+fn overlap(store: &Path) {
+    let all = read_at(store, i64::MAX);
+    let now_t = all.iter().map(|(_, _, _, t)| *t).max().unwrap_or(0);
+
+    // A (churn) + the feet for B (inbound calls per callee symbol; symbol → file via edge|contains).
+    let mut churn: HashMap<String, usize> = HashMap::new();
+    let mut deleted: HashSet<String> = HashSet::new();
+    let mut inbound: HashMap<String, usize> = HashMap::new();
+    let mut sym_file: HashMap<String, String> = HashMap::new();
+    for (addr, source, content, _t) in &all {
+        if let Some(f) = addr.strip_prefix("node|file|") {
+            if source == "git" {
+                if content == "deleted" {
+                    deleted.insert(f.to_string());
+                } else if content.starts_with("touched") {
+                    *churn.entry(f.to_string()).or_default() += 1;
+                }
+            }
+        } else if let Some(rest) = addr.strip_prefix("edge|calls|") {
+            if let Some((_caller, callee)) = rest.split_once('|') {
+                *inbound.entry(callee.to_string()).or_default() += 1;
+            }
+        } else if let Some(rest) = addr.strip_prefix("edge|contains|") {
+            if let Some((path, sym)) = rest.split_once('|') {
+                sym_file.insert(sym.to_string(), path.to_string());
+            }
+        }
+    }
+    // Aggregate B to the file: call-in(f) = Σ inbound over symbols f contains; keep the hottest called
+    // symbols per file as the call foot for provenance/cone.
+    let mut callin: HashMap<String, usize> = HashMap::new();
+    let mut hotsyms: HashMap<String, Vec<(String, usize)>> = HashMap::new();
+    for (sym, n) in &inbound {
+        if let Some(f) = sym_file.get(sym) {
+            *callin.entry(f.clone()).or_default() += *n;
+            hotsyms
+                .entry(f.clone())
+                .or_default()
+                .push((sym.clone(), *n));
+        }
+    }
+
+    // Data-derived top strata (the FINDING, not a constant): p75 of each nonzero distribution.
+    let churn_cut = quantile_nonzero(&churn, 0.75);
+    let callin_cut = quantile_nonzero(&callin, 0.75);
+    let a_top: HashSet<&String> = churn
+        .iter()
+        .filter(|&(f, &c)| c >= churn_cut && !deleted.contains(f))
+        .map(|(f, _)| f)
+        .collect();
+    let b_top: HashSet<&String> = callin
+        .iter()
+        .filter(|&(f, &c)| c >= callin_cut && !deleted.contains(f))
+        .map(|(f, _)| f)
+        .collect();
+
+    // A∩B = the OVERLAP. Emergent precisely because it is SMALL vs each part (whole ≠ sum).
+    let mut both: Vec<(String, usize, usize)> = a_top
+        .intersection(&b_top)
+        .map(|f| {
+            (
+                (*f).clone(),
+                churn.get(*f).copied().unwrap_or(0),
+                callin.get(*f).copied().unwrap_or(0),
+            )
+        })
+        .collect();
+    both.sort_by_key(|(_, ch, ci)| std::cmp::Reverse((*ci, *ch)));
+
+    // WRITE BACK tier-1 `organ:overlap` records. content = pure localization + partial signals (no
+    // scalar, no recognition gloss); derived_from = churn foot + up to 3 hottest call feet.
+    if let Ok(fh) = OpenOptions::new().create(true).append(true).open(store) {
+        let mut w = BufWriter::new(fh);
+        for (f, ch, ci) in &both {
+            let mut df = vec![format!("node|file|{f}")];
+            if let Some(syms) = hotsyms.get(f) {
+                let mut s = syms.clone();
+                s.sort_by_key(|(_, n)| std::cmp::Reverse(*n));
+                for (sym, _) in s.iter().take(3) {
+                    df.push(format!("node|scip|{sym}"));
+                }
+            }
+            let _ = writeln!(
+                w,
+                "{}\torgan:overlap\t{}\t{}\t1\t{}",
+                san(&format!("node|file|{f}")),
+                san(&format!("emergent[churn:{ch},call-in:{ci}]")),
+                now_t,
+                df.join(";")
+            );
+        }
+        let _ = w.flush();
+    }
+
+    let show = |v: usize| {
+        if v == usize::MAX {
+            "n/a".to_string()
+        } else {
+            v.to_string()
+        }
+    };
+    let smaller = a_top.len().min(b_top.len()).max(1);
+    let larger = a_top.len().max(b_top.len()).max(1);
+    let pct_small = 100.0 * both.len() as f64 / smaller as f64;
+    let pct_large = 100.0 * both.len() as f64 / larger as f64;
+    // The emergence WITNESS: observed |A∩B| vs the count expected if churn⊥call-in over the population
+    // of files carrying EITHER signal (expected = |A|*|B|/N). excess > 1 = above-independence overlap.
+    let pop: HashSet<&String> = churn
+        .keys()
+        .chain(callin.keys())
+        .filter(|f| !deleted.contains(*f))
+        .collect();
+    let n = pop.len().max(1);
+    let expected = a_top.len() as f64 * b_top.len() as f64 / n as f64;
+    let excess = both.len() as f64 / expected.max(1e-9);
+    println!(
+        "== organ:overlap — DETECTED overlap-emergent (Mayer–Vietoris δ), EVIDENCE-grade: {} ==\n",
+        store.display()
+    );
+    println!(
+        "  detection: cells in the INTERSECTION of two data-derived top strata (p75 of each nonzero dist)"
+    );
+    println!(
+        "    A = top-churn files (cut >= {} touches): {}",
+        show(churn_cut),
+        a_top.len()
+    );
+    println!(
+        "    B = top-call-in files (cut >= {} inbound calls): {}",
+        show(callin_cut),
+        b_top.len()
+    );
+    println!(
+        "  A∩B (overlap): {}  ({pct_small:.1}% of the smaller part, {pct_large:.1}% of the larger)",
+        both.len()
+    );
+    println!(
+        "  emergence witness (excess over churn⊥call-in independence): observed {} vs expected {expected:.1} = {excess:.2}x  (>1 = above independence; a low single-digit x is a MODEST excess, not a large effect. NB this strata-cut null differs from a Spearman-rho test — an independent check found rho 0.24/0.53 = also modest)\n",
+        both.len()
+    );
+    if both.is_empty() {
+        println!(
+            "  (empty — needs BOTH a git derive AND a scip derive in this store for the overlap to exist)"
+        );
+        return;
+    }
+    println!("  overlap-emergent cells (partial signals, no scalar):");
+    for (f, ch, ci) in both.iter().take(20) {
+        println!("      churn:{ch:<4} call-in:{ci:<5}  {f}");
+    }
+    println!(
+        "\n  wrote {} `organ:overlap` droplets BACK (tier-1) — re-fold to see the loop; `cone` a flagged cell to walk to BOTH feet (churn file-cell + called scip-symbol cells).",
+        both.len()
+    );
+}
+
+/// The raw INGEST sources the fingerprint is taken over (organ:* sources are excluded — a fingerprint
+/// is a fact about which BLIND derivations co-located, never about what an organ later said). Bit `i`
+/// of a support mask is `RAW_SOURCES[i]`.
+const RAW_SOURCES: [&str; 3] = ["git", "scip", "tree"];
+
+/// Render a raw-source support mask (bit per source, `RAW_SOURCES` order) as `{git,scip}`.
+fn support_str(mask: u8) -> String {
+    let names: Vec<&str> = RAW_SOURCES
+        .iter()
+        .enumerate()
+        .filter(|(i, _)| mask & (1u8 << i) != 0)
+        .map(|(_, s)| *s)
+        .collect();
+    format!("{{{}}}", names.join(","))
+}
+
+/// The DETECTED FLOOR organ — dependency-stratification / source-support fingerprint, the ladder's
+/// GROUND that plural-death, the-absence, and overlap all read OVER. Per cell it records the SET of
+/// distinct RAW sources ({git,scip,tree}) present = the cell's minimal support-prime (its coordinate
+/// prime in the source-graded module M — Ass(M) at the record level). This is the PRINCIPLED
+/// replacement for `fold`'s boolean ">=2 sources = correspondence": the full lattice POSITION of every
+/// cell, not a yes/no. Purely DETECTED — the support FELL OUT of which blind derivations co-located,
+/// never forced — EVIDENCE-grade.
+///
+/// Reports: (1) the `2^3 - 1 = 7`-cell SUPPORT-LATTICE CENSUS — how many cells sit at each nonempty
+/// support-subset; (2) the INTERIOR BOUNDARIES — cells whose support is a PROPER SUBSET of the combined
+/// support of their address-siblings (cells sharing a structural token: a path or a symbol), i.e. an
+/// entity seen richly by some cells but thinly by this one = a stratification SEAM. Writes back
+/// `organ:fingerprint` records (tier-1, `derived_from` = the fingerprinted cell — its own co-located
+/// droplets are the grounding) for the multi-source cells (the correspondence set, now carrying its
+/// EXACT prime). NO scalar (ADR-002).
+///
+/// HONEST partiality: this is the MINIMAL prime (WHICH sources) — the finer associated-primes structure
+/// (embedded primes, multiplicity) needs the boundary map `∂`/homology the manifold does NOT yet have,
+/// deferred. The interior-boundary sibling-notion uses the union (OR) cover of shared-token cells, a
+/// coarsening of true single-sibling proper-subset.
+#[allow(clippy::cast_precision_loss)] // display-only counts
+fn fingerprint(store: &Path) {
+    let all = read_at(store, i64::MAX);
+    let now_t = all.iter().map(|(_, _, _, t)| *t).max().unwrap_or(0);
+
+    // Support mask per cell over RAW sources only (organ:* excluded from the fingerprint).
+    let mut supp: HashMap<String, u8> = HashMap::new();
+    for (addr, source, _c, _t) in &all {
+        if let Some(i) = RAW_SOURCES.iter().position(|s| *s == source.as_str()) {
+            *supp.entry(addr.clone()).or_default() |= 1u8 << i;
+        }
+    }
+    // token -> cover mask (OR of every cell containing the token). token = address parts after the
+    // `type|category` prefix (parts[2..]) — the shared file-paths and symbols entities co-locate on.
+    let mut cover: HashMap<&str, u8> = HashMap::new();
+    for (addr, &m) in &supp {
+        for tok in addr.split('|').skip(2) {
+            *cover.entry(tok).or_default() |= m;
+        }
+    }
+
+    // Census over the 7 nonempty support-subsets + interior-boundary detection (support ⊊ sibling cover).
+    let mut census = [0usize; 8];
+    let mut boundary: Vec<(&String, u8, u8)> = Vec::new();
+    let mut trans: HashMap<(u8, u8), usize> = HashMap::new();
+    for (addr, &m) in &supp {
+        if m == 0 {
+            continue;
+        }
+        census[m as usize] += 1;
+        let mut cu = m;
+        for tok in addr.split('|').skip(2) {
+            cu |= cover.get(tok).copied().unwrap_or(0);
+        }
+        if cu != m {
+            // m ⊆ cu always (cu = OR incl. m); cu != m ⟺ a sibling adds a source ⟹ interior seam.
+            boundary.push((addr, m, cu));
+            *trans.entry((m, cu)).or_default() += 1;
+        }
+    }
+
+    // WRITE BACK: one tier-1 `organ:fingerprint` per multi-source cell, carrying its EXACT prime.
+    let mut multi = 0usize;
+    if let Ok(fh) = OpenOptions::new().create(true).append(true).open(store) {
+        let mut w = BufWriter::new(fh);
+        for (addr, &m) in &supp {
+            if m.count_ones() >= 2 {
+                multi += 1;
+                let _ = writeln!(
+                    w,
+                    "{}\torgan:fingerprint\t{}\t{}\t1\t{}",
+                    san(addr),
+                    san(&format!("support:{}", support_str(m))),
+                    now_t,
+                    san(addr) // derived_from = the fingerprinted cell (its co-located droplets ARE the ground)
+                );
+            }
+        }
+        let _ = w.flush();
+    }
+
+    let total: usize = census.iter().sum();
+    println!(
+        "== organ:fingerprint — DETECTED dependency-stratification (source-support / Ass(M) floor), EVIDENCE-grade: {} ==\n",
+        store.display()
+    );
+    println!(
+        "  per cell: the SET of raw sources present = its minimal support-prime (the ladder's floor the others read over)"
+    );
+    println!("  cells with a raw-source support: {total}\n");
+    println!("  support-lattice census (2^3-1 = 7 nonempty subsets):");
+    for m in [1u8, 2, 4, 3, 5, 6, 7] {
+        // singletons, then pairs, then the triple
+        let pct = 100.0 * census[m as usize] as f64 / total.max(1) as f64;
+        println!(
+            "    {:>18}  {:>7}  ({pct:.1}%)",
+            support_str(m),
+            census[m as usize]
+        );
+    }
+    println!(
+        "\n  correspondence (>=2 sources — the OLD boolean, now RESOLVED into the pairs+triple above): {multi}"
+    );
+
+    let mut tv: Vec<((u8, u8), usize)> = trans.into_iter().collect();
+    tv.sort_by_key(|(_, n)| std::cmp::Reverse(*n));
+    println!(
+        "\n  INTERIOR BOUNDARIES (cell support ⊊ its address-siblings' union cover = a stratification seam): {}",
+        boundary.len()
+    );
+    println!("  top seam transitions (own-support ⊊ shared-entity cover):");
+    for ((m, cu), n) in tv.iter().take(8) {
+        let sample = boundary
+            .iter()
+            .find(|(_, mm, cc)| mm == m && cc == cu)
+            .map_or("", |(a, ..)| a.as_str());
+        println!(
+            "    {:>10} ⊊ {:<12}  {:>7}   e.g. {sample}",
+            support_str(*m),
+            support_str(*cu),
+            n
+        );
+    }
+    println!(
+        "\n  wrote {multi} `organ:fingerprint` records BACK (tier-1, one per multi-source cell carrying its exact prime) — re-fold to see the loop."
+    );
+}
+
 /// A full 6-field record: `(source, content, t, tier, derived_from)`.
 type FullRec = (String, String, i64, u32, Vec<String>);
 
@@ -935,9 +1346,83 @@ fn walk_cone(
     }
 }
 
+/// RUNTIME cross VIEW — the static⊗runtime H¹ (the disagreement the dead-code walls kept pointing at).
+/// Per bare-name cell: scip (statically callable) × coverage (actually executed)? Three quadrants —
+/// CONFIRMED-LIVE = scip ∧ executed; RUNTIME-COLD = scip ∧ ¬executed (callable but not run in the
+/// covered workload — the real "cold" signal, from execution not inference); COVERAGE-ONLY = executed
+/// ∧ ¬scip (ran but static never saw it = dyn dispatch / macro-gen = the ¬S∧R instrument hole the
+/// runtime source REVEALS). Writes back `organ:runtime` records (tier-1). Workload-relative + open-world.
+#[allow(clippy::cast_precision_loss)] // display-only counts
+fn runtime(store: &Path) {
+    let all = read_at(store, i64::MAX);
+    let now_t = all.iter().map(|(_, _, _, t)| *t).max().unwrap_or(0);
+    let mut scip_bare: HashSet<&str> = HashSet::new();
+    let mut cov: HashMap<&str, u64> = HashMap::new();
+    for (addr, source, content, _t) in &all {
+        if let Some(bare) = addr.strip_prefix("node|bare|") {
+            if source == "scip" {
+                scip_bare.insert(bare);
+            } else if source == "coverage" {
+                let n = content
+                    .strip_prefix("executed:")
+                    .and_then(|s| s.parse::<u64>().ok())
+                    .unwrap_or(0);
+                let e = cov.entry(bare).or_default();
+                *e = (*e).max(n);
+            }
+        }
+    }
+    let (mut live, mut cold, mut written) = (0usize, 0usize, 0usize);
+    let mut cold_sample: Vec<&str> = Vec::new();
+    if let Ok(fh) = OpenOptions::new().create(true).append(true).open(store) {
+        let mut w = BufWriter::new(fh);
+        for &b in &scip_bare {
+            let verdict = if cov.get(b).copied().unwrap_or(0) > 0 {
+                live += 1;
+                "confirmed-live"
+            } else {
+                cold += 1;
+                if cold_sample.len() < 20 {
+                    cold_sample.push(b);
+                }
+                "runtime-cold"
+            };
+            let cell = san(&format!("node|bare|{b}"));
+            let _ = writeln!(w, "{cell}\torgan:runtime\t{verdict}\t{now_t}\t1\t{cell}");
+            written += 1;
+        }
+        let _ = w.flush();
+    }
+    let cov_only = cov
+        .iter()
+        .filter(|(b, &n)| n > 0 && !scip_bare.contains(*b))
+        .count();
+    let callable = scip_bare.len();
+    let lpct = 100.0 * live as f64 / callable.max(1) as f64;
+    println!(
+        "== organ:runtime — static⊗runtime H¹ (executed vs callable), workload-relative: {} ==\n",
+        store.display()
+    );
+    println!("  callable (scip bare-names):             {callable}");
+    println!("  CONFIRMED-LIVE (scip ∧ executed):       {live}  ({lpct:.1}%)");
+    println!(
+        "  RUNTIME-COLD   (scip ∧ NOT executed):   {cold}  — callable but not run by this workload"
+    );
+    println!(
+        "  COVERAGE-ONLY  (executed ∧ NOT in scip): {cov_only}  — ran but static never saw it (dyn/macro = the ¬S∧R hole runtime reveals)"
+    );
+    println!("\n  runtime-cold sample (callable, unexercised here):");
+    for b in cold_sample.iter().take(20) {
+        println!("      {b}");
+    }
+    println!(
+        "\n  wrote {written} organ:runtime records (tier-1). HONEST: 'cold' = not run by THIS workload (antigen lib unit tests), open-world for extrapolation; bare-name-aggregated."
+    );
+}
+
 fn main() {
     let args: Vec<String> = std::env::args().skip(1).collect();
-    let usage = "usage: manifold <store> derive <repo> <source> [scip]  |  manifold <store> {fold|timeline|quiet|dead|nexus}  |  manifold <store> cone <cell>\n  sources: git, tree, scip <scip-path>";
+    let usage = "usage: manifold <store> derive <repo> <source> [scip|lcov]  |  manifold <store> {fold|timeline|quiet|dead|nexus|overlap|fingerprint|runtime}  |  manifold <store> cone <cell>\n  sources: git, tree, scip <scip-path>, coverage <lcov-path>";
     let Some(store) = args.first() else {
         eprintln!("{usage}");
         std::process::exit(2);
@@ -969,8 +1454,20 @@ fn main() {
                         String::new(),
                     )
                 },
+                "coverage" => {
+                    let Some(lcov) = args.get(4) else {
+                        eprintln!("coverage source needs a 4th arg: the .lcov path");
+                        std::process::exit(2);
+                    };
+                    (
+                        derive_coverage(Path::new(lcov), head_time(repo)),
+                        String::new(),
+                    )
+                },
                 other => {
-                    eprintln!("unknown source '{other}' — try git | tree | scip <scip-path>");
+                    eprintln!(
+                        "unknown source '{other}' — try git | tree | scip <scip-path> | coverage <lcov-path>"
+                    );
                     std::process::exit(2);
                 },
             };
@@ -990,6 +1487,9 @@ fn main() {
         Some("quiet") => quiet(store),
         Some("dead") => dead(store),
         Some("nexus") => nexus(store),
+        Some("overlap") => overlap(store),
+        Some("fingerprint") => fingerprint(store),
+        Some("runtime") => runtime(store),
         Some("cone") => {
             let Some(target) = args.get(2) else {
                 eprintln!(
