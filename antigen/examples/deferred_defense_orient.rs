@@ -43,7 +43,7 @@ use antigen::{orient, triage_commit};
 /// failure-classes this port has not yet been reviewed against.
 #[orient(
     learning_path = "Review against the legacy system's documented failure-classes before the v1 tag",
-    until = "2026-09-01"
+    until = "2027-02-01"
 )]
 pub fn legacy_ported_compute(input: f64) -> f64 {
     // Simplified port of legacy computation.
@@ -63,7 +63,7 @@ pub fn legacy_ported_compute(input: f64) -> f64 {
 #[orient(
     PanickingInDrop,
     learning_path = "Audit the extraction against the monolith's failure-classes (ADR-023, ISSUE-4891) before promoting off orientation",
-    until = "2026-08-15"
+    until = "2027-01-15"
 )]
 pub fn handle_webhook_event(payload: &[u8]) -> Result<(), String> {
     if payload.is_empty() {
@@ -85,7 +85,7 @@ pub fn handle_webhook_event(payload: &[u8]) -> Result<(), String> {
 /// The orientation period closes when the design is locked (ISSUE-5100).
 #[orient(
     learning_path = "Lock the design (ISSUE-5100), then declare real immunity or tolerance before this horizon",
-    until = "2026-07-31"
+    until = "2026-12-31"
 )]
 pub fn experimental_feature_alpha(config: &str) -> Option<String> {
     if config.is_empty() {

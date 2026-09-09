@@ -515,8 +515,8 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     for ((s, o), graphs) in cross_witnessed.iter().take(3) {
         println!(
             "    {} → {}  (witnessed in: {:?})",
-            &s[1..].rsplit("sym/").next().unwrap_or(s),
-            &o[1..].rsplit("sym/").next().unwrap_or(o),
+            s[1..].rsplit("sym/").next().unwrap_or(s),
+            o[1..].rsplit("sym/").next().unwrap_or(o),
             graphs.iter().map(|g| &g[1..]).collect::<Vec<_>>()
         );
     }
