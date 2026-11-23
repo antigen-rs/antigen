@@ -74,7 +74,21 @@ pub struct Defended;
 /// `git` failures fail the test loudly — these are the tests that REQUIRE a repo.
 fn init_repo_with_commit(dir: &Path) -> String {
     let run = |args: &[&str]| {
-        let out = Command::new("git")
+        let mut cmd = Command::new("git");
+        // Hermetic: strip the GIT_* vars a hook exports, or `git config user.*` below
+        // would write the fixture identity into the REAL repo's .git/config.
+        for var in [
+            "GIT_DIR",
+            "GIT_INDEX_FILE",
+            "GIT_WORK_TREE",
+            "GIT_OBJECT_DIRECTORY",
+            "GIT_COMMON_DIR",
+            "GIT_ALTERNATE_OBJECT_DIRECTORIES",
+            "GIT_PREFIX",
+        ] {
+            cmd.env_remove(var);
+        }
+        let out = cmd
             .args(args)
             .current_dir(dir)
             .output()

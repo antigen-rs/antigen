@@ -185,7 +185,25 @@ mod tests {
     /// `.git` for the dangling-ref fixture (the production miner never shells out — it
     /// reads the object graph via `gix`).
     fn git(dir: &Path, args: &[&str]) {
-        let status = std::process::Command::new("git")
+        let mut cmd = std::process::Command::new("git");
+        // Hermetic: a git hook (e.g. pre-commit running the test suite) exports
+        // GIT_DIR / GIT_INDEX_FILE / … pointing at the REAL repo, and git honours them
+        // over `current_dir`. Left in place, the fixture's `git config user.*` lands in
+        // the real checkout's .git/config and every later real commit is authored as the
+        // fixture identity (this happened: 191 commits as `t <t@t.t>`). Strip them so
+        // `current_dir` is the only repo this helper can ever touch.
+        for var in [
+            "GIT_DIR",
+            "GIT_INDEX_FILE",
+            "GIT_WORK_TREE",
+            "GIT_OBJECT_DIRECTORY",
+            "GIT_COMMON_DIR",
+            "GIT_ALTERNATE_OBJECT_DIRECTORIES",
+            "GIT_PREFIX",
+        ] {
+            cmd.env_remove(var);
+        }
+        let status = cmd
             .current_dir(dir)
             // A throwaway fixture repo is NOT a gated project: isolate it from the
             // user's GLOBAL git hooks. (camp's pre-commit gate installs via a global
